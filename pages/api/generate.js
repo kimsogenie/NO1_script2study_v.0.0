@@ -31,13 +31,13 @@ const SYSTEM_PROMPT = `당신은 영어 회화 교재 제작 전문가입니다.
   }
 }
 
+중요: 응답이 길어지더라도 반드시 JSON을 완전하게 닫아서 완성된 형태로 반환하세요. 잘린 JSON은 절대 안 됩니다.
 규칙:
-- parts: 내용 흐름 기준 2~4개 섹션으로 나누기
-- keyExpressions: 파트당 5~8개, star는 특히 중요한 것만 true
-- shadowingTraining: Day 1~5, 하루 5문장, 난이도 순으로 구성
+- parts: 내용 흐름 기준 2~3개 섹션으로 나누기 (너무 많이 나누지 말 것)
+- keyExpressions: 파트당 5개만 선정
+- shadowingTraining: Day 1~5, 하루 5문장
 - workbook 각 섹션 5개씩
-- 설명은 자연스럽고 말하듯이, 딱딱한 문법 설명 금지
-- 원어민 느낌 중심으로 설명`;
+- 설명은 자연스럽고 말하듯이, 딱딱한 문법 설명 금지`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
   try {
     const message = await client.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 4000,
+      max_tokens: 8000,
       system: SYSTEM_PROMPT,
       messages: [{
         role: "user",
@@ -59,11 +59,43 @@ export default async function handler(req, res) {
     });
 
     const raw = message.content?.[0]?.text || "";
-    const cleaned = raw.replace(/```json\n?|\n?```/g, "").trim();
-    const parsed = JSON.parse(cleaned);
+    
+    // 마크다운 코드블록 제거
+    let cleaned = raw.replace(/```json\n?|\n?```/g, "").trim();
+    
+    // JSON이 잘렸을 경우 복구 시도
+    if (!cleaned.endsWith("}")) {
+      // 마지막으로 완전히 닫힌 위치 찾기
+      let depth = 0;
+      let lastValidEnd = -1;
+      for (let i = 0; i < cleaned.length; i++) {
+        if (cleaned[i] === "{") depth++;
+        if (cleaned[i] === "}") {
+          depth--;
+          if (depth === 0) lastValidEnd = i;
+        }
+      }
+      if (lastValidEnd > 0) {
+        cleaned = cleaned.substring(0, lastValidEnd + 1);
+      }
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      console.error("Raw response:", raw.substring(0, 500));
+      return res.status(500).json({ error: "교재 형식 오류가 발생했어요. 스크립트를 조금 짧게 줄여서 다시 시도해주세요." });
+    }
+
     res.status(200).json(parsed);
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "교재 생성 중 오류가 발생했어요." });
+    console.error("API error:", e);
+    const msg = e?.error?.error?.message || e?.message || "";
+    if (msg.includes("credit")) {
+      return res.status(402).json({ error: "API 크레딧이 부족해요. console.anthropic.com에서 충전해주세요." });
+    }
+    res.status(500).json({ error: "교재 생성 중 오류가 발생했어요. 다시 시도해주세요." });
   }
 }
