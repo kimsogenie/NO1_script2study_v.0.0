@@ -243,6 +243,12 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .alt-label{font-size:11px;font-weight:600;color:var(--ink3);}
 .alt-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:var(--panel);border:1px solid var(--sidebar-border);border-radius:999px;font-size:12px;color:var(--ink2);cursor:pointer;transition:all .15s;}
 .alt-chip:hover{background:var(--blue-light);border-color:var(--blue);color:var(--blue);}
+.exam-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.exam-tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:.02em;}
+.exam-tag-토익{background:#FFF3E0;color:#E65100;}
+.exam-tag-토스{background:#E8F5E9;color:#2E7D32;}
+.exam-tag-오픽{background:#E3F2FD;color:#1565C0;}
+.exam-tag-수능{background:#F3E5F5;color:#6A1B9A;}
 
 .conv-item{padding:10px 13px;background:var(--pink-light);border-radius:8px;border-left:3px solid var(--pink);font-size:14px;color:var(--ink2);line-height:1.7;margin-bottom:7px;}
 .conv-item:last-child{margin-bottom:0;}
@@ -548,6 +554,13 @@ export default function App() {
                     ))}
                   </div>
                 )}
+                {e.examTags?.length > 0 && (
+                  <div className="exam-tags">
+                    {e.examTags.map((tag,j) => (
+                      <span key={j} className={`exam-tag exam-tag-${tag}`}>{tag} 빈출</span>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -575,6 +588,13 @@ export default function App() {
                 {m.alternatives?.length > 0 && (
                   <div className="mem-alts">
                     {m.alternatives.map((a,j) => <span key={j} className="mem-alt">{a}</span>)}
+                  </div>
+                )}
+                {m.examTags?.length > 0 && (
+                  <div className="exam-tags" style={{marginTop:6}}>
+                    {m.examTags.map((tag,j) => (
+                      <span key={j} className={`exam-tag exam-tag-${tag}`}>{tag} 빈출</span>
+                    ))}
                   </div>
                 )}
               </div>
