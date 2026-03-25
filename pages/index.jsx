@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Head from "next/head";
 
-const QUOTES = [
+const VERSION = "v0.8";
+const COPYRIGHT = `© 2025 kimsogenie. All rights reserved.`;
   { ko: "늦었다고 생각할 때가 진짜 너무 늦은 거다. 그러니 지금 당장 시작해라." },
   { ko: "시작은 반이 아니다. 시작은 시작일 뿐이다." },
   { ko: "열심히 한다고 다 되는 게 아니다. 잘해야 한다." },
@@ -342,7 +343,12 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 }
 
 /* 입력 화면 태그라인 */
-.tagline-bar{
+.app-footer{
+  text-align:center;padding:16px;
+  font-size:11px;color:var(--ink4);letter-spacing:.02em;
+  border-top:1px solid var(--border);margin-top:auto;
+}
+.app-footer span{margin:0 6px;}
   display:flex;align-items:center;gap:8px;margin-bottom:20px;
   padding:10px 14px;background:var(--blue-light);border-radius:10px;
 }
@@ -849,6 +855,9 @@ export default function App() {
               </div>
               <div className="res-main">{renderContent()}</div>
             </div>
+            <div className="app-footer">
+              <span>Script2Study {VERSION}</span>·<span>{COPYRIGHT}</span>
+            </div>
           </div>
         </div>
       </>
@@ -941,6 +950,9 @@ export default function App() {
                 )}
               </div>
             </div>
+          </div>
+          <div className="app-footer">
+            <span>Script2Study {VERSION}</span>·<span>{COPYRIGHT}</span>
           </div>
         </div>
       </div>
