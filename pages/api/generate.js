@@ -27,14 +27,14 @@ const SYSTEM_PROMPT = `당신은 영어 회화 교재 제작 전문가입니다.
   }
 }
 
-엄격한 규칙 — 반드시 지킬 것:
-- parts: 최대 2개만
-- keyExpressions: 파트당 4개만
-- shadowingSentences: 파트당 4개만
-- conversationPoints: 파트당 2개만
-- shadowingTraining: Day 1~3만 (3일치)
-- workbook 각 섹션 4개씩
-- 모든 설명은 짧고 간결하게
+규칙:
+- parts: 스크립트 길이에 따라 2~4개
+- keyExpressions: 파트당 5개
+- shadowingSentences: 파트당 5개
+- conversationPoints: 파트당 3개
+- shadowingTraining: Day 1~5
+- workbook 각 섹션 5개씩
+- 설명은 자연스럽고 간결하게
 - JSON 반드시 완전하게 닫을 것`;
 
 export default async function handler(req, res) {
@@ -42,23 +42,27 @@ export default async function handler(req, res) {
   const { script, title } = req.body;
   if (!script) return res.status(400).json({ error: "스크립트가 없어요." });
 
-  // 스크립트 너무 길면 자르기
-  const trimmedScript = script.length > 1500 ? script.slice(0, 1500) + "\n...(이후 생략)" : script;
+  // 10,000자 제한
+  const trimmed = script.length > 10000 ? script.slice(0, 10000) + "\n...(이후 생략)" : script;
+
+  // 길이에 따라 모델 선택: 3000자 이상이면 Sonnet, 이하면 Haiku
+  const model = trimmed.length > 3000
+    ? "claude-sonnet-4-20250514"
+    : "claude-haiku-4-5-20251001";
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   try {
     const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model,
       max_tokens: 8096,
       system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: `제목: ${title || "영어 회화 교재"}\n\n스크립트:\n${trimmedScript}` }]
+      messages: [{ role: "user", content: `제목: ${title || "영어 회화 교재"}\n\n스크립트:\n${trimmed}` }]
     });
 
     const raw = message.content?.[0]?.text || "";
     let cleaned = raw.replace(/```json\n?|\n?```/g, "").trim();
 
-    // JSON 잘린 경우 복구
     if (!cleaned.endsWith("}")) {
       let depth = 0, lastValidEnd = -1;
       for (let i = 0; i < cleaned.length; i++) {
@@ -72,7 +76,7 @@ export default async function handler(req, res) {
       const parsed = JSON.parse(cleaned);
       res.status(200).json(parsed);
     } catch {
-      res.status(500).json({ error: "교재 형식 오류예요. 스크립트를 더 짧게 줄여서 다시 시도해주세요." });
+      res.status(500).json({ error: "교재 형식 오류예요. 스크립트를 조금 줄여서 다시 시도해주세요." });
     }
   } catch (e) {
     const msg = e?.error?.error?.message || e?.message || "";
