@@ -1,291 +1,248 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 
-const G = `
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
+// ── TTS Hook
+function useTTS() {
+  const [speaking, setSpeaking] = useState(null);
 
+  const speak = useCallback((text, id) => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    if (speaking === id) { setSpeaking(null); return; }
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-US"; u.rate = 0.9; u.pitch = 1;
+    const voices = window.speechSynthesis.getVoices();
+    const en = voices.find(v => v.lang.startsWith("en") && v.name.includes("Google"))
+      || voices.find(v => v.lang.startsWith("en-US"))
+      || voices.find(v => v.lang.startsWith("en"));
+    if (en) u.voice = en;
+    u.onstart = () => setSpeaking(id);
+    u.onend = () => setSpeaking(null);
+    u.onerror = () => setSpeaking(null);
+    window.speechSynthesis.speak(u);
+  }, [speaking]);
+
+  const stop = useCallback(() => {
+    window.speechSynthesis?.cancel();
+    setSpeaking(null);
+  }, []);
+
+  return { speak, stop, speaking };
+}
+
+const G = `
+@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#F7F5F0;
-  --white:#FFFFFF;
-  --ink:#1A1A1A;
-  --ink2:#4A4A4A;
-  --ink3:#888;
-  --border:#E0DDD6;
-  --green:#059652;
-  --green-light:#E8F7EE;
-  --yellow:#F5C842;
-  --yellow-light:#FFFBEA;
-  --red:#E8453C;
-  --radius:14px;
-  --shadow:0 2px 12px rgba(0,0,0,.07);
+  --bg:#E8E8E8;--win:#FFFFFF;--sidebar:#F0F0F0;--sidebar-border:#E0E0E0;
+  --panel:#F7F7F7;--ink:#1A1A1A;--ink2:#3C3C3C;--ink3:#7A7A7A;--ink4:#ADADAD;
+  --blue:#4A90D9;--blue-light:rgba(74,144,217,0.12);
+  --pink:#E8A0B0;--pink-light:rgba(232,160,176,0.15);--pink-mid:#D4849A;
+  --green:#34C759;--green-light:rgba(52,199,89,0.1);
+  --border:rgba(0,0,0,0.08);
+  --shadow:0 8px 32px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.06);
+  --shadow-sm:0 1px 4px rgba(0,0,0,0.08);--r:10px;
 }
-body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;
+  background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
 
-/* ── INPUT SCREEN ── */
-.input-bg{
-  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
-  background:var(--bg);
-}
-.input-wrap{max-width:560px;width:100%;}
+/* INPUT */
+.input-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 20px;background:var(--bg);}
+.finder-window{width:100%;max-width:680px;background:var(--win);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;border:1px solid rgba(255,255,255,0.9);}
+.titlebar{height:40px;background:var(--sidebar);border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;padding:0 14px;gap:7px;}
+.dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.dot-r{background:#FF5F57;}.dot-y{background:#FEBC2E;}.dot-g{background:#28C840;}
+.titlebar-name{flex:1;text-align:center;font-size:13px;font-weight:500;color:var(--ink3);margin-left:-36px;}
+.finder-body{display:flex;min-height:440px;}
+.sidebar{width:170px;flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--sidebar-border);padding:16px 0;}
+.sb-section{margin-bottom:18px;}
+.sb-label{font-size:11px;font-weight:700;color:var(--ink3);padding:0 14px 6px;text-transform:uppercase;letter-spacing:.07em;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:6px 14px;font-size:14px;font-weight:500;color:var(--ink2);cursor:pointer;transition:background .15s;}
+.sb-item:hover{background:rgba(0,0,0,.04);}
+.sb-item.active{background:var(--blue-light);color:var(--blue);font-weight:600;}
+.sb-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.main-panel{flex:1;padding:28px 28px 32px;overflow:auto;}
+.main-eyebrow{font-size:13px;color:var(--ink3);margin-bottom:2px;}
+.main-title{font-size:32px;font-weight:800;color:var(--ink);letter-spacing:-.03em;margin-bottom:24px;}
+.field{margin-bottom:14px;}
+.lbl{display:block;font-size:12px;font-weight:600;color:var(--ink3);margin-bottom:6px;letter-spacing:-.01em;}
+.inp{width:100%;padding:10px 13px;background:var(--win);border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;color:var(--ink);outline:none;transition:border-color .2s,box-shadow .2s;box-shadow:inset 0 1px 2px rgba(0,0,0,.04);}
+.inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-light);}
+.inp::placeholder{color:var(--ink4);}
+.ta{height:150px;resize:vertical;line-height:1.6;}
+.cnt{font-size:12px;color:var(--ink4);text-align:right;margin-top:4px;}
+.btn-gen{width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:-.01em;transition:opacity .15s,transform .1s;margin-top:4px;box-shadow:0 2px 8px rgba(74,144,217,.35);}
+.btn-gen:hover{opacity:.88;transform:translateY(-1px);}
+.btn-gen:active{transform:translateY(0);}
+.btn-gen:disabled{background:var(--ink4);box-shadow:none;cursor:not-allowed;transform:none;}
+.err{font-size:13px;color:#E05555;text-align:center;margin-top:10px;}
+.tip{margin-top:16px;padding:11px 13px;background:var(--blue-light);border-radius:8px;font-size:13px;color:var(--blue);line-height:1.65;}
 
-.brand{margin-bottom:36px;}
-.brand-name{
-  font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:.04em;
-  color:var(--ink);line-height:1;margin-bottom:4px;
-}
-.brand-name span{color:var(--green);}
-.brand-tag{
-  display:inline-block;background:var(--yellow);color:var(--ink);
-  font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:.04em;
-}
-
-.field{margin-bottom:16px;}
-.lbl{display:block;font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:.08em;
-  text-transform:uppercase;margin-bottom:7px;}
-.inp{
-  width:100%;padding:13px 16px;background:var(--white);border:2px solid var(--border);
-  border-radius:var(--radius);font-size:14px;font-family:inherit;color:var(--ink);
-  outline:none;transition:border-color .2s;
-}
-.inp:focus{border-color:var(--green);}
-.inp::placeholder{color:#C0BDB5;}
-.ta{height:200px;resize:vertical;line-height:1.65;}
-.cnt{font-size:11px;color:var(--ink3);text-align:right;margin-top:5px;}
-
-.btn-gen{
-  width:100%;padding:16px;background:var(--ink);color:#fff;border:none;
-  border-radius:var(--radius);font-size:15px;font-weight:700;font-family:inherit;
-  cursor:pointer;transition:background .2s,transform .1s;letter-spacing:.01em;margin-top:4px;
-}
-.btn-gen:hover{background:#333;transform:translateY(-1px);}
-.btn-gen:disabled{background:#C0BDB5;cursor:not-allowed;transform:none;}
-
-.err{font-size:13px;color:var(--red);text-align:center;margin-top:10px;}
-.tip{
-  margin-top:20px;padding:14px 16px;background:var(--green-light);
-  border-radius:var(--radius);border-left:3px solid var(--green);
-  font-size:13px;color:var(--ink2);line-height:1.7;
-}
-
-/* ── LOADING ── */
-.load-screen{
-  min-height:100vh;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:20px;background:var(--bg);
-}
-.spinner{
-  width:44px;height:44px;border:3px solid var(--border);
-  border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg);}}
-.load-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;color:var(--ink);}
+/* LOADING */
+.load-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--bg);}
+.load-folder{font-size:56px;animation:bob 1.4s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.load-title{font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.02em;}
 .load-sub{font-size:14px;color:var(--ink3);}
+.load-bar{width:160px;height:3px;background:var(--sidebar-border);border-radius:99px;overflow:hidden;}
+.load-bar-fill{height:100%;background:var(--blue);border-radius:99px;animation:fill 1.5s ease-in-out infinite;}
+@keyframes fill{0%{width:0%;margin-left:0;}60%{width:70%;margin-left:0;}100%{width:0%;margin-left:100%;}}
 
-/* ── RESULT: HEADER ── */
-.rh{
-  background:var(--white);border-bottom:2px solid var(--border);
-  padding:0 24px;display:flex;align-items:center;
-  justify-content:space-between;position:sticky;top:0;z-index:20;height:58px;gap:12px;
-}
-.hl{min-width:0;}
-.hname{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em;color:var(--ink);line-height:1;}
-.hname span{color:var(--green);}
-.htitle{font-size:12px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;}
-.hbtns{display:flex;gap:8px;flex-shrink:0;}
+/* RESULT */
+.result-wrap{min-height:100vh;background:var(--bg);}
+.result-window{max-width:900px;margin:0 auto;background:var(--win);min-height:100vh;box-shadow:0 0 60px rgba(0,0,0,.12);display:flex;flex-direction:column;}
+@media(min-width:900px){.result-window{min-height:auto;margin:32px auto;border-radius:16px;overflow:hidden;min-height:calc(100vh - 64px);}}
+.res-titlebar{height:40px;background:var(--sidebar);border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;padding:0 14px;gap:7px;position:sticky;top:0;z-index:30;flex-shrink:0;}
+.res-titlebar-name{flex:1;text-align:center;font-size:13px;font-weight:500;color:var(--ink3);margin-left:-36px;}
+.res-header-btns{display:flex;gap:6px;margin-left:auto;position:absolute;right:14px;}
+.btn-xs{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:opacity .15s;border:none;white-space:nowrap;}
+.btn-xs:active{opacity:.8;}
+.btn-xs-blue{background:var(--blue);color:#fff;box-shadow:0 1px 4px rgba(74,144,217,.3);}
+.btn-xs-blue:hover{opacity:.85;}
+.btn-xs-ghost{background:rgba(0,0,0,.07);color:var(--ink2);}
+.btn-xs-ghost:hover{background:rgba(0,0,0,.11);}
+.mob-tabs{display:none;background:var(--sidebar);border-bottom:1px solid var(--sidebar-border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.mob-tabs::-webkit-scrollbar{display:none;}
+@media(max-width:640px){.mob-tabs{display:flex;}}
+.mob-tab{flex-shrink:0;padding:11px 14px;font-size:13px;font-weight:500;font-family:inherit;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;color:var(--ink3);white-space:nowrap;transition:all .18s;}
+.mob-tab.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:600;}
+.res-body{display:flex;flex:1;}
+.res-sidebar{width:160px;flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--sidebar-border);padding:16px 0;position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;}
+@media(max-width:640px){.res-sidebar{display:none;}}
+.res-sb-title{font-size:11px;font-weight:700;color:var(--ink3);padding:0 14px 8px;text-transform:uppercase;letter-spacing:.07em;}
+.res-sb-item{display:flex;align-items:center;gap:9px;padding:7px 14px;font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;transition:background .15s;}
+.res-sb-item:hover{background:rgba(0,0,0,.04);}
+.res-sb-item.on{background:var(--blue-light);color:var(--blue);font-weight:600;}
+.res-sb-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+.res-main{flex:1;padding:24px 24px 80px;min-width:0;}
+.sec-head{font-size:26px;font-weight:800;color:var(--ink);letter-spacing:-.03em;margin-bottom:18px;}
+.sec-eyebrow{font-size:12px;color:var(--ink3);margin-bottom:2px;}
+.part-pills{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px;}
+.part-pill{padding:6px 14px;border-radius:999px;font-size:13px;font-weight:500;font-family:inherit;background:var(--panel);border:1.5px solid var(--sidebar-border);cursor:pointer;color:var(--ink2);transition:all .15s;}
+.part-pill.on{background:var(--pink);border-color:var(--pink-mid);color:#fff;box-shadow:0 2px 8px rgba(212,132,154,.3);}
+.card{background:var(--win);border-radius:var(--r);border:1px solid var(--border);padding:18px 20px;margin-bottom:10px;box-shadow:var(--shadow-sm);}
+.card-label{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:13px;}
 
-.btn-pdf{
-  padding:8px 16px;background:var(--green);color:#fff;border:none;
-  border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;
-  cursor:pointer;transition:background .2s;white-space:nowrap;
-}
-.btn-pdf:hover{background:#047a42;}
-.btn-pdf:disabled{background:#A7D9BC;cursor:not-allowed;}
-.btn-back{
-  padding:8px 14px;background:transparent;border:2px solid var(--border);
-  border-radius:8px;font-size:12px;font-family:inherit;cursor:pointer;
-  color:var(--ink2);white-space:nowrap;transition:all .18s;
-}
-.btn-back:hover{border-color:var(--ink);color:var(--ink);}
+/* SENTENCES */
+.sent-list{display:flex;flex-direction:column;}
+.sent-row{padding:13px 0;border-bottom:1px solid var(--panel);display:flex;align-items:flex-start;gap:10px;}
+.sent-row:last-child{border-bottom:none;}
+.sent-text{flex:1;}
+.sent-en{font-size:15px;font-weight:600;color:var(--ink);line-height:1.6;margin-bottom:4px;}
+.sent-ko{font-size:14px;color:var(--ink2);line-height:1.6;}
 
-/* ── TABS ── */
-.tb{
-  background:var(--white);padding:0 20px;display:flex;
-  border-bottom:2px solid var(--border);overflow-x:auto;
-  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+/* TTS BUTTON */
+.tts-btn{
+  flex-shrink:0;width:30px;height:30px;border-radius:50%;border:none;
+  background:var(--panel);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:14px;transition:all .15s;margin-top:2px;
 }
-.tb::-webkit-scrollbar{display:none;}
-.tbtn{
-  flex-shrink:0;padding:14px 15px;font-size:13px;font-weight:600;font-family:inherit;
-  background:none;border:none;border-bottom:3px solid transparent;
-  cursor:pointer;color:var(--ink3);white-space:nowrap;transition:all .18s;margin-bottom:-2px;
-}
-.tbtn.on{color:var(--green);border-bottom-color:var(--green);}
-.tbtn:hover:not(.on){color:var(--ink);}
+.tts-btn:hover{background:var(--blue-light);transform:scale(1.08);}
+.tts-btn.playing{background:var(--blue);animation:pulse-tts .8s ease-in-out infinite;}
+@keyframes pulse-tts{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
 
-/* ── CONTENT ── */
-.ca{max-width:780px;margin:0 auto;padding:28px 20px 80px;}
+/* EXPRESSIONS */
+.expr-row{padding:13px 0;border-bottom:1px solid var(--panel);}
+.expr-row:last-child{border-bottom:none;}
+.expr-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.expr-top{display:flex;align-items:center;gap:7px;}
+.expr-word{font-size:15px;font-weight:700;color:var(--ink);}
+.pick-tag{background:var(--pink);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;}
+.expr-mean{font-size:13px;color:var(--ink2);margin-bottom:4px;}
+.expr-ex{font-size:13px;color:var(--ink3);font-style:italic;margin-bottom:6px;}
+.alt-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
+.alt-label{font-size:11px;font-weight:600;color:var(--ink3);margin-right:2px;align-self:center;}
+.alt-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 9px;background:var(--panel);border:1px solid var(--sidebar-border);
+  border-radius:999px;font-size:12px;color:var(--ink2);cursor:pointer;
+  transition:all .15s;
+}
+.alt-chip:hover{background:var(--blue-light);border-color:var(--blue);color:var(--blue);}
+.alt-chip .chip-tts{font-size:11px;opacity:.7;}
 
-/* Part pills */
-.ps{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;}
-.pp{
-  padding:7px 16px;border-radius:999px;font-size:12px;font-weight:700;font-family:inherit;
-  background:var(--white);border:2px solid var(--border);cursor:pointer;
-  color:var(--ink2);transition:all .18s;
-}
-.pp.on{background:var(--ink);border-color:var(--ink);color:#fff;}
+/* CONV */
+.conv-item{padding:10px 13px;background:var(--pink-light);border-radius:8px;border-left:3px solid var(--pink);font-size:14px;color:var(--ink2);line-height:1.7;margin-bottom:7px;}
+.conv-item:last-child{margin-bottom:0;}
 
-/* Sentence pairs */
-.sl{display:flex;flex-direction:column;}
-.sp2{padding:16px 0;border-bottom:1px solid var(--border);}
-.sp2:last-child{border-bottom:none;}
-.en{font-size:15px;line-height:1.65;color:var(--ink);font-weight:700;margin-bottom:5px;}
-.ko{font-size:14px;line-height:1.65;color:var(--ink2);}
+/* SHADOW */
+.sh-item{display:flex;align-items:center;gap:9px;padding:9px 13px;background:var(--blue-light);border-radius:8px;border-left:3px solid var(--blue);margin-bottom:7px;}
+.sh-item:last-child{margin-bottom:0;}
+.sh-text{font-size:14px;color:var(--ink);line-height:1.6;flex:1;}
+.learn-box{padding:12px 14px;background:var(--panel);border-radius:8px;font-size:14px;color:var(--ink2);line-height:1.75;}
 
-/* Section card */
-.sc{background:var(--white);border:2px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:14px;}
-.sc-accent-green{border-left:4px solid var(--green);}
-.sc-accent-yellow{border-left:4px solid var(--yellow);}
-.sct{font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;}
+/* MEMORY */
+.mem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:9px;margin-top:4px;}
+.mem-card{background:var(--win);border-radius:var(--r);padding:14px 15px;border:1px solid var(--border);box-shadow:var(--shadow-sm);transition:box-shadow .15s,transform .15s;}
+.mem-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-2px);}
+.mem-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.mem-expr{font-size:14px;font-weight:700;color:var(--pink-mid);}
+.mem-mean{font-size:13px;color:var(--ink2);margin-bottom:6px;}
+.mem-alts{display:flex;flex-wrap:wrap;gap:4px;}
+.mem-alt{font-size:11px;padding:2px 7px;background:var(--panel);border-radius:999px;color:var(--ink3);}
 
-/* Expressions */
-.ei{padding:13px 0;border-bottom:1px solid var(--bg);}
-.ei:last-child{border-bottom:none;}
-.et{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
-.etx{font-size:15px;font-weight:700;color:var(--ink);}
-.star-badge{background:var(--yellow);color:var(--ink);font-size:10px;font-weight:700;
-  padding:2px 7px;border-radius:4px;letter-spacing:.04em;}
-.em{font-size:13px;color:var(--ink2);margin-bottom:3px;}
-.eex{font-size:13px;color:var(--ink3);font-style:italic;}
+/* SHADOWING */
+.day-card{background:var(--win);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:9px;box-shadow:var(--shadow-sm);}
+.day-hd{font-size:13px;font-weight:700;color:var(--blue);margin-bottom:11px;display:flex;align-items:center;gap:8px;}
+.day-hd::after{content:'';flex:1;height:1px;background:var(--border);}
+.day-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--panel);font-size:14px;color:var(--ink);align-items:center;line-height:1.6;}
+.day-row:last-child{border-bottom:none;}
+.day-num{flex-shrink:0;font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-light);border-radius:5px;padding:2px 7px;min-width:24px;text-align:center;}
+.day-txt{flex:1;}
 
-/* Conv */
-.ci{
-  font-size:14px;line-height:1.7;color:var(--ink2);
-  padding:10px 14px;margin-bottom:8px;
-  background:var(--yellow-light);border-radius:8px;border-left:3px solid var(--yellow);
-}
-.ci:last-child{margin-bottom:0;}
-
-/* Shadow sent */
-.ss{
-  font-size:14px;padding:11px 14px;background:var(--green-light);
-  border-radius:8px;margin-bottom:8px;color:var(--ink);line-height:1.6;
-  border-left:3px solid var(--green);
-}
-.ss:last-child{margin-bottom:0;}
-
-/* Learning */
-.lb{
-  font-size:14px;line-height:1.8;color:var(--ink2);
-  padding:14px 16px;background:var(--bg);border-radius:10px;
-}
-
-/* Memory */
-.mi{font-size:13px;color:var(--ink3);margin-bottom:16px;}
-.mg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;}
-.mc{
-  background:var(--white);border-radius:var(--radius);padding:16px;
-  border:2px solid var(--border);transition:border-color .2s,transform .15s;
-}
-.mc:hover{border-color:var(--green);transform:translateY(-2px);}
-.mx{font-size:14px;font-weight:700;color:var(--green);margin-bottom:5px;}
-.mm{font-size:13px;color:var(--ink2);}
-
-/* Shadowing */
-.si2{font-size:13px;color:var(--ink3);margin-bottom:16px;}
-.dc{
-  background:var(--white);border:2px solid var(--border);
-  border-radius:var(--radius);padding:18px 20px;margin-bottom:12px;
-}
-.dl{
-  font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.04em;
-  color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:10px;
-}
-.dl::after{content:'';flex:1;height:2px;background:var(--border);}
-.ds{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--bg);
-  font-size:14px;color:var(--ink);align-items:flex-start;line-height:1.6;}
-.ds:last-child{border-bottom:none;}
-.di{
-  flex-shrink:0;font-size:10px;font-weight:700;color:var(--white);
-  background:var(--ink);border-radius:5px;padding:3px 7px;
-  min-width:24px;text-align:center;margin-top:2px;
-}
-
-/* Workbook */
-.wl{
-  font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.04em;
-  color:var(--ink);margin:28px 0 12px;
-}
-.wl:first-child{margin-top:0;}
-.wi{background:var(--white);border:2px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:9px;}
-.wq{font-size:14px;color:var(--ink);line-height:1.65;margin-bottom:10px;}
-.wa{font-size:13px;color:var(--green);font-weight:700;
-  padding:8px 12px;background:var(--green-light);border-radius:8px;}
-.wr{
-  padding:7px 14px;background:transparent;border:2px solid var(--border);
-  border-radius:8px;font-size:12px;font-family:inherit;cursor:pointer;
-  color:var(--ink2);transition:all .18s;
-}
-.wr:hover{border-color:var(--green);color:var(--green);}
-
-.mt{width:100%;border-collapse:collapse;font-size:14px;}
-.mt th{
-  text-align:left;padding:9px 13px;background:var(--bg);
-  font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;
-}
-.mt td{padding:11px 13px;border-bottom:1px solid var(--border);color:var(--ink);}
-.mt tr:last-child td{border-bottom:none;}
-.mh{color:transparent;background:var(--border);border-radius:4px;user-select:none;}
-.smb{
-  display:block;padding:9px 14px;background:transparent;border:2px solid var(--border);
-  border-radius:8px;font-size:12px;font-family:inherit;cursor:pointer;
-  color:var(--ink2);margin-top:12px;transition:all .18s;
-}
-.smb:hover{border-color:var(--ink);color:var(--ink);}
-
-.qi{
-  background:var(--white);border:2px solid var(--border);border-radius:var(--radius);
-  padding:14px 16px;margin-bottom:9px;display:flex;gap:12px;align-items:flex-start;
-}
-.qb{
-  flex-shrink:0;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.04em;
-  color:var(--white);background:var(--ink);border-radius:6px;
-  padding:3px 9px;margin-top:1px;
-}
-.qt{font-size:14px;line-height:1.65;color:var(--ink);}
-
-/* ── PRINT STYLES ── */
-@media print {
-  body{background:#fff!important;color:#000!important;}
-  .rh,.tb,.hbtns,.ps,.no-print{display:none!important;}
-  .ca{padding:0!important;max-width:100%!important;}
-  .sc,.dc,.wi,.mc,.qi{border:1px solid #ddd!important;break-inside:avoid;}
-  .print-header{display:block!important;}
-}
-.print-header{display:none;}
+/* WORKBOOK */
+.wb-head{font-size:18px;font-weight:700;color:var(--ink);margin:22px 0 10px;letter-spacing:-.02em;}
+.wb-head:first-child{margin-top:0;}
+.wb-card{background:var(--win);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;box-shadow:var(--shadow-sm);}
+.wb-q{font-size:14px;color:var(--ink);line-height:1.65;margin-bottom:9px;}
+.wb-ans{font-size:13px;font-weight:600;color:var(--blue);padding:8px 12px;background:var(--blue-light);border-radius:7px;}
+.btn-rev{padding:7px 13px;background:var(--panel);border:none;border-radius:7px;font-size:13px;font-family:inherit;cursor:pointer;color:var(--ink2);transition:background .15s;}
+.btn-rev:hover{background:var(--sidebar-border);}
+.mtbl{width:100%;border-collapse:collapse;font-size:14px;}
+.mtbl th{text-align:left;padding:8px 12px;background:var(--panel);font-size:11px;font-weight:600;color:var(--ink3);letter-spacing:.05em;text-transform:uppercase;}
+.mtbl td{padding:10px 12px;border-bottom:1px solid var(--panel);color:var(--ink);}
+.mtbl tr:last-child td{border-bottom:none;}
+.hidden-m{color:transparent;background:var(--sidebar-border);border-radius:4px;user-select:none;}
+.btn-tog{display:block;padding:8px 13px;background:var(--panel);border:none;border-radius:7px;font-size:13px;font-family:inherit;cursor:pointer;color:var(--ink2);margin-top:10px;transition:background .15s;}
+.btn-tog:hover{background:var(--sidebar-border);}
+.q-item{background:var(--win);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;box-shadow:var(--shadow-sm);}
+.q-badge{flex-shrink:0;font-size:11px;font-weight:700;color:var(--pink-mid);background:var(--pink-light);border-radius:5px;padding:3px 8px;margin-top:1px;}
+.q-txt{font-size:14px;line-height:1.65;color:var(--ink);}
 `;
 
-const PRINT_STYLES = `
-  body { font-family: 'Noto Sans KR', sans-serif; color: #1A1A1A; }
-  .print-doc { max-width: 700px; margin: 0 auto; padding: 20px; }
-  .ph { background: #059652; color: white; padding: 20px 24px; border-radius: 8px; margin-bottom: 24px; }
-  .ph h1 { font-size: 22px; font-weight: 900; letter-spacing: .04em; margin-bottom: 4px; }
-  .ph p { font-size: 13px; opacity: .85; }
-  .part-title { font-size: 16px; font-weight: 900; color: #059652; border-bottom: 2px solid #059652; padding-bottom: 6px; margin: 24px 0 14px; }
-  .sec-label { font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .1em; margin: 16px 0 8px; }
-  .sent-pair { padding: 8px 0; border-bottom: 1px solid #eee; }
-  .sent-en { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
-  .sent-ko { font-size: 13px; color: #555; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
-  th { background: #059652; color: white; padding: 7px 10px; text-align: left; font-size: 11px; }
-  td { padding: 8px 10px; border-bottom: 1px solid #eee; }
-  .shadow-item { padding: 6px 10px; background: #E8F7EE; border-left: 3px solid #059652; margin-bottom: 6px; font-size: 13px; }
-  .learn-box { padding: 10px 14px; background: #f5f5f5; border-radius: 6px; font-size: 13px; color: #444; line-height: 1.7; }
-  .day-title { font-weight: 700; color: #059652; margin: 12px 0 6px; font-size: 14px; }
-  .wb-item { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
-  .wb-ans { color: #059652; font-weight: 700; }
-  .q-item { padding: 8px 12px; background: #f9f9f9; border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
-  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+const PRINT_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Pretendard',-apple-system,'Apple SD Gothic Neo',sans-serif;color:#1A1A1A;background:#fff;padding:28px 32px;}
+  .doc{max-width:680px;margin:0 auto;}
+  .hdr{background:#4A90D9;color:#fff;padding:18px 22px;border-radius:10px;margin-bottom:24px;}
+  .hdr h1{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:3px;}
+  .hdr p{font-size:13px;opacity:.82;}
+  .pt{font-size:16px;font-weight:700;color:#4A90D9;border-bottom:2px solid #4A90D9;padding-bottom:6px;margin:22px 0 12px;}
+  .sec{font-size:10px;font-weight:700;color:#7A7A7A;text-transform:uppercase;letter-spacing:.07em;margin:14px 0 7px;}
+  .s{padding:8px 0;border-bottom:1px solid #F0F0F0;}
+  .se{font-size:14px;font-weight:600;margin-bottom:3px;}
+  .sk{font-size:13px;color:#3C3C3C;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px;}
+  th{background:#4A90D9;color:#fff;padding:7px 11px;text-align:left;font-size:11px;font-weight:600;}
+  td{padding:8px 11px;border-bottom:1px solid #F0F0F0;}
+  .shi{padding:7px 11px;background:#EEF5FC;border-left:3px solid #4A90D9;margin-bottom:5px;font-size:13px;border-radius:4px;}
+  .lb{padding:10px 13px;background:#F7F7F7;border-radius:7px;font-size:13px;color:#3C3C3C;line-height:1.7;}
+  .alt-row{font-size:12px;color:#7A7A7A;margin-top:3px;}
+  .dh{font-size:13px;font-weight:700;color:#4A90D9;margin:11px 0 5px;}
+  .wr{padding:7px 0;border-bottom:1px solid #F0F0F0;font-size:13px;}
+  .ans{color:#4A90D9;font-weight:600;}
+  .qr{padding:8px 11px;background:#F7F7F7;border-radius:6px;margin-bottom:5px;font-size:13px;}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 `;
+
+const TABS = [
+  {id:"sentences",label:"해석",icon:"📄"},
+  {id:"expressions",label:"표현",icon:"💡"},
+  {id:"memory",label:"암기장",icon:"🧠"},
+  {id:"shadowing",label:"쉐도잉",icon:"🎙"},
+  {id:"workbook",label:"워크북",icon:"✏️"},
+];
 
 export default function App() {
   const [screen, setScreen] = useState("input");
@@ -297,11 +254,13 @@ export default function App() {
   const [partIdx, setPartIdx] = useState(0);
   const [reveals, setReveals] = useState({});
   const [showMatch, setShowMatch] = useState(false);
+  const { speak, speaking } = useTTS();
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator)
       navigator.serviceWorker.register("/sw.js").catch(() => {});
-    }
+    // preload voices
+    if (typeof window !== "undefined") window.speechSynthesis?.getVoices();
   }, []);
 
   const reveal = (k) => setReveals(p => ({ ...p, [k]: true }));
@@ -315,124 +274,94 @@ export default function App() {
         body: JSON.stringify({ script, title })
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || "오류"); }
-      const parsed = await res.json();
-      setResult(parsed); setPartIdx(0); setTab("sentences"); setScreen("result");
-    } catch (e) {
-      setError(e.message || "오류가 발생했어요."); setScreen("input");
-    }
+      setResult(await res.json()); setPartIdx(0); setTab("sentences"); setScreen("result");
+    } catch (e) { setError(e.message || "오류가 발생했어요."); setScreen("input"); }
   };
 
   const printPDF = () => {
     if (!result) return;
-    const parts = result.parts || [];
-
-    let html = `<html><head>
-      <meta charset="UTF-8"/>
-      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet"/>
-      <style>${PRINT_STYLES}</style>
-    </head><body><div class="print-doc">`;
-
-    html += `<div class="ph"><h1>Script2Study</h1><p>${result.title || ""}</p></div>`;
-
-    parts.forEach((part) => {
-      html += `<div class="part-title">${part.partTitle || `Part ${part.partNumber}`}</div>`;
-
-      html += `<div class="sec-label">문장별 해석</div>`;
-      (part.sentences || []).forEach(s => {
-        html += `<div class="sent-pair"><div class="sent-en">${s.en}</div><div class="sent-ko">${s.ko}</div></div>`;
-      });
-
-      if (part.keyExpressions?.length) {
-        html += `<div class="sec-label">핵심 표현</div>
-        <table><thead><tr><th>Expression</th><th>Meaning</th><th>Example</th></tr></thead><tbody>`;
-        part.keyExpressions.forEach(e => {
-          html += `<tr><td>${e.star ? "⭐ " : ""}${e.expression}</td><td>${e.meaning}</td><td>${e.example}</td></tr>`;
+    let h = `<html><head><meta charset="UTF-8"/>
+      <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet"/>
+      <style>${PRINT_CSS}</style></head><body><div class="doc">`;
+    h += `<div class="hdr"><h1>Script2Study</h1><p>${result.title||""}</p></div>`;
+    (result.parts||[]).forEach(p => {
+      h += `<div class="pt">${p.partTitle||`Part ${p.partNumber}`}</div>`;
+      h += `<div class="sec">문장별 해석</div>`;
+      (p.sentences||[]).forEach(s => { h += `<div class="s"><div class="se">${s.en}</div><div class="sk">${s.ko}</div></div>`; });
+      if (p.keyExpressions?.length) {
+        h += `<div class="sec">핵심 표현</div><table><thead><tr><th>Expression</th><th>Meaning</th><th>Example</th><th>유사 표현</th></tr></thead><tbody>`;
+        p.keyExpressions.forEach(e => {
+          const alts = (e.alternatives||[]).join(", ");
+          h += `<tr><td>${e.star?"⭐ ":""}${e.expression}</td><td>${e.meaning}</td><td>${e.example}</td><td style="color:#7A7A7A;font-size:12px">${alts}</td></tr>`;
         });
-        html += `</tbody></table>`;
+        h += `</tbody></table>`;
       }
-
-      if (part.conversationPoints?.length) {
-        html += `<div class="sec-label">회화 포인트</div>`;
-        part.conversationPoints.forEach(c => { html += `<div class="shadow-item">${c}</div>`; });
+      if (p.shadowingSentences?.length) {
+        h += `<div class="sec">쉐도잉 문장</div>`;
+        p.shadowingSentences.forEach(s => { h += `<div class="shi">${s}</div>`; });
       }
-
-      if (part.shadowingSentences?.length) {
-        html += `<div class="sec-label">쉐도잉 문장</div>`;
-        part.shadowingSentences.forEach(s => { html += `<div class="shadow-item">${s}</div>`; });
-      }
-
-      if (part.learningPoints) {
-        html += `<div class="sec-label">학습 포인트</div><div class="learn-box">${part.learningPoints}</div>`;
-      }
+      if (p.learningPoints) h += `<div class="sec">학습 포인트</div><div class="lb">${p.learningPoints}</div>`;
     });
-
     if (result.memoryCards?.length) {
-      html += `<div class="part-title">전체 암기장</div>
-      <table><thead><tr><th>Expression</th><th>Meaning</th></tr></thead><tbody>`;
-      result.memoryCards.forEach(m => { html += `<tr><td>${m.expression}</td><td>${m.meaning}</td></tr>`; });
-      html += `</tbody></table>`;
+      h += `<div class="pt">전체 암기장</div><table><thead><tr><th>Expression</th><th>Meaning</th><th>유사 표현</th></tr></thead><tbody>`;
+      result.memoryCards.forEach(m => {
+        const alts = (m.alternatives||[]).join(", ");
+        h += `<tr><td>${m.expression}</td><td>${m.meaning}</td><td style="color:#7A7A7A;font-size:12px">${alts}</td></tr>`;
+      });
+      h += `</tbody></table>`;
     }
-
     if (result.shadowingTraining?.length) {
-      html += `<div class="part-title">쉐도잉 트레이닝</div>`;
-      result.shadowingTraining.forEach(day => {
-        html += `<div class="day-title">Day ${day.day}</div>`;
-        (day.sentences || []).forEach((s, i) => {
-          html += `<div class="wb-item">${i + 1}. ${s}</div>`;
-        });
+      h += `<div class="pt">쉐도잉 트레이닝</div>`;
+      result.shadowingTraining.forEach(d => {
+        h += `<div class="dh">Day ${d.day}</div>`;
+        (d.sentences||[]).forEach((s,i) => { h += `<div class="wr">${i+1}. ${s}</div>`; });
       });
     }
-
     if (result.workbook) {
       const wb = result.workbook;
-      html += `<div class="part-title">워크북</div>`;
-
+      h += `<div class="pt">워크북</div>`;
       if (wb.fillInBlank?.length) {
-        html += `<div class="sec-label">1. 빈칸 채우기</div>`;
-        wb.fillInBlank.forEach((q, i) => {
-          html += `<div class="wb-item">${i + 1}. ${q.question}<br/><span class="wb-ans">정답: ${q.answer}</span></div>`;
-        });
+        h += `<div class="sec">빈칸 채우기</div>`;
+        wb.fillInBlank.forEach((q,i) => { h += `<div class="wr">${i+1}. ${q.question}<br/><span class="ans">정답: ${q.answer}</span></div>`; });
       }
-
       if (wb.matching?.length) {
-        html += `<div class="sec-label">2. 표현 매칭</div>
-        <table><thead><tr><th>Expression</th><th>Meaning</th></tr></thead><tbody>`;
-        wb.matching.forEach(m => { html += `<tr><td>${m.expression}</td><td>${m.meaning}</td></tr>`; });
-        html += `</tbody></table>`;
+        h += `<div class="sec">표현 매칭</div><table><thead><tr><th>Expression</th><th>Meaning</th></tr></thead><tbody>`;
+        wb.matching.forEach(m => { h += `<tr><td>${m.expression}</td><td>${m.meaning}</td></tr>`; });
+        h += `</tbody></table>`;
       }
-
       if (wb.translation?.length) {
-        html += `<div class="sec-label">3. 한→영 영작</div>`;
-        wb.translation.forEach((t, i) => {
-          html += `<div class="wb-item">${i + 1}. ${t.korean}<br/><span class="wb-ans">→ ${t.english}</span></div>`;
-        });
+        h += `<div class="sec">한→영 영작</div>`;
+        wb.translation.forEach((t,i) => { h += `<div class="wr">${i+1}. ${t.korean}<br/><span class="ans">→ ${t.english}</span></div>`; });
       }
-
       if (wb.speakingQuestions?.length) {
-        html += `<div class="sec-label">4. 스스로 말해보기</div>`;
-        wb.speakingQuestions.forEach((q, i) => {
-          html += `<div class="q-item">Q${i + 1}. ${q}</div>`;
-        });
+        h += `<div class="sec">스스로 말해보기</div>`;
+        wb.speakingQuestions.forEach((q,i) => { h += `<div class="qr">Q${i+1}. ${q}</div>`; });
       }
     }
-
-    html += `</div></body></html>`;
-
-    const win = window.open("", "_blank");
-    win.document.write(html);
-    win.document.close();
-    win.onload = () => { win.focus(); win.print(); };
+    h += `</div></body></html>`;
+    const w = window.open("","_blank");
+    w.document.write(h); w.document.close();
+    w.onload = () => { w.focus(); w.print(); };
   };
+
+  // TTS button component
+  const TTSBtn = ({ text, id }) => (
+    <button className={`tts-btn ${speaking===id?"playing":""}`}
+      onClick={() => speak(text, id)} title="듣기">
+      {speaking===id ? "⏹" : "🔊"}
+    </button>
+  );
 
   // ── LOADING
   if (screen === "loading") return (
     <>
-      <Head><title>Script2Study — 교재 생성 중</title></Head>
+      <Head><title>Script2Study</title></Head>
       <style jsx global>{G}</style>
       <div className="load-screen">
-        <div className="spinner" />
-        <div className="load-title">교재 만드는 중</div>
-        <div className="load-sub">보통 10~25초 정도 걸려요</div>
+        <div className="load-folder">📂</div>
+        <div className="load-title">교재 만드는 중...</div>
+        <div className="load-sub">잠깐만 기다려 주세요</div>
+        <div className="load-bar"><div className="load-bar-fill"/></div>
       </div>
     </>
   );
@@ -441,173 +370,222 @@ export default function App() {
   if (screen === "result" && result) {
     const parts = result.parts || [];
     const part = parts[partIdx] || {};
-    const tabs = [
-      { id: "sentences", label: "📖 해석" },
-      { id: "expressions", label: "💡 표현" },
-      { id: "memory", label: "🧠 암기장" },
-      { id: "shadowing", label: "🎙 쉐도잉" },
-      { id: "workbook", label: "✏️ 워크북" },
-    ];
+
+    const renderContent = () => {
+      if (tab === "sentences") return (
+        <>
+          <div className="sec-eyebrow">Script2Study</div>
+          <div className="sec-head">{result.title}</div>
+          {parts.length > 1 && (
+            <div className="part-pills">
+              {parts.map((p,i) => (
+                <button key={i} className={`part-pill ${partIdx===i?"on":""}`} onClick={()=>setPartIdx(i)}>
+                  {p.partTitle||`Part ${i+1}`}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="card">
+            <div className="sent-list">
+              {(part.sentences||[]).map((s,i) => (
+                <div key={i} className="sent-row">
+                  <div className="sent-text">
+                    <div className="sent-en">{s.en}</div>
+                    <div className="sent-ko">{s.ko}</div>
+                  </div>
+                  <TTSBtn text={s.en} id={`sent-${partIdx}-${i}`} />
+                </div>
+              ))}
+            </div>
+          </div>
+          {part.shadowingSentences?.length > 0 && (
+            <div className="card">
+              <div className="card-label">🎙 이 파트 쉐도잉</div>
+              {part.shadowingSentences.map((s,i) => (
+                <div key={i} className="sh-item">
+                  <span className="sh-text">{s}</span>
+                  <TTSBtn text={s} id={`shsen-${partIdx}-${i}`} />
+                </div>
+              ))}
+            </div>
+          )}
+          {part.learningPoints && (
+            <div className="card">
+              <div className="card-label">📌 학습 포인트</div>
+              <div className="learn-box">{part.learningPoints}</div>
+            </div>
+          )}
+        </>
+      );
+
+      if (tab === "expressions") return (
+        <>
+          <div className="sec-head">핵심 표현</div>
+          {parts.length > 1 && (
+            <div className="part-pills">
+              {parts.map((p,i) => (
+                <button key={i} className={`part-pill ${partIdx===i?"on":""}`} onClick={()=>setPartIdx(i)}>
+                  {p.partTitle||`Part ${i+1}`}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="card">
+            {(part.keyExpressions||[]).map((e,i) => (
+              <div key={i} className="expr-row">
+                <div className="expr-header">
+                  <div className="expr-top">
+                    <span className="expr-word">{e.expression}</span>
+                    {e.star && <span className="pick-tag">PICK</span>}
+                  </div>
+                  <TTSBtn text={e.expression} id={`expr-${partIdx}-${i}`} />
+                </div>
+                <div className="expr-mean">{e.meaning}</div>
+                <div className="expr-ex">예) {e.example}</div>
+                {e.alternatives?.length > 0 && (
+                  <div className="alt-wrap">
+                    <span className="alt-label">유사표현</span>
+                    {e.alternatives.map((alt,j) => (
+                      <span key={j} className="alt-chip" onClick={() => speak(alt, `alt-${i}-${j}`)}>
+                        {alt}
+                        <span className="chip-tts">🔊</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          {(part.conversationPoints||[]).length > 0 && (
+            <div className="card">
+              <div className="card-label">💬 회화 포인트</div>
+              {part.conversationPoints.map((c,i) => <div key={i} className="conv-item">{c}</div>)}
+            </div>
+          )}
+        </>
+      );
+
+      if (tab === "memory") return (
+        <>
+          <div className="sec-head">전체 암기장</div>
+          <p style={{fontSize:13,color:"var(--ink3)",marginBottom:16}}>회화에서 바로 꺼낼 수 있는 표현만 모았어요 📌</p>
+          <div className="mem-grid">
+            {(result.memoryCards||[]).map((m,i) => (
+              <div key={i} className="mem-card">
+                <div className="mem-header">
+                  <div className="mem-expr">{m.expression}</div>
+                  <TTSBtn text={m.expression} id={`mem-${i}`} />
+                </div>
+                <div className="mem-mean">{m.meaning}</div>
+                {m.alternatives?.length > 0 && (
+                  <div className="mem-alts">
+                    {m.alternatives.map((a,j) => <span key={j} className="mem-alt">{a}</span>)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      );
+
+      if (tab === "shadowing") return (
+        <>
+          <div className="sec-head">쉐도잉 트레이닝</div>
+          <p style={{fontSize:13,color:"var(--ink3)",marginBottom:16}}>Day 1부터 소리 내서 따라 말해보세요 🎙</p>
+          {(result.shadowingTraining||[]).map((day,i) => (
+            <div key={i} className="day-card">
+              <div className="day-hd">Day {day.day}</div>
+              {(day.sentences||[]).map((s,j) => (
+                <div key={j} className="day-row">
+                  <span className="day-num">{j+1}</span>
+                  <span className="day-txt">{s}</span>
+                  <TTSBtn text={s} id={`day-${i}-${j}`} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </>
+      );
+
+      if (tab === "workbook") return (
+        <>
+          <div className="sec-head">워크북</div>
+          <div className="wb-head">1. 빈칸 채우기</div>
+          {(result.workbook?.fillInBlank||[]).map((q,i) => (
+            <div key={i} className="wb-card">
+              <div className="wb-q">{i+1}. {q.question}</div>
+              {reveals[`f${i}`] ? <div className="wb-ans">정답: {q.answer}</div>
+                : <button className="btn-rev" onClick={()=>reveal(`f${i}`)}>정답 보기</button>}
+            </div>
+          ))}
+          <div className="wb-head">2. 표현 매칭</div>
+          <div className="wb-card">
+            <table className="mtbl">
+              <thead><tr><th>표현</th><th>뜻</th></tr></thead>
+              <tbody>
+                {(result.workbook?.matching||[]).map((m,i) => (
+                  <tr key={i}>
+                    <td>{m.expression}</td>
+                    <td className={showMatch?"":"hidden-m"}>{m.meaning}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button className="btn-tog" onClick={()=>setShowMatch(p=>!p)}>
+              {showMatch?"뜻 숨기기":"뜻 보기"}
+            </button>
+          </div>
+          <div className="wb-head">3. 한→영 영작</div>
+          {(result.workbook?.translation||[]).map((t,i) => (
+            <div key={i} className="wb-card">
+              <div className="wb-q">{i+1}. {t.korean}</div>
+              {reveals[`t${i}`] ? <div className="wb-ans">{t.english}</div>
+                : <button className="btn-rev" onClick={()=>reveal(`t${i}`)}>정답 보기</button>}
+            </div>
+          ))}
+          <div className="wb-head">4. 스스로 말해보기</div>
+          {(result.workbook?.speakingQuestions||[]).map((q,i) => (
+            <div key={i} className="q-item">
+              <span className="q-badge">Q{i+1}</span>
+              <span className="q-txt">{q}</span>
+            </div>
+          ))}
+        </>
+      );
+    };
 
     return (
       <>
-        <Head><title>{result.title} — Script2Study</title></Head>
+        <Head><title>{result.title} — S2S</title></Head>
         <style jsx global>{G}</style>
-        <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-          <div className="rh">
-            <div className="hl">
-              <div className="hname">Script<span>2</span>Study</div>
-              <div className="htitle">{result.title}</div>
+        <div className="result-wrap">
+          <div className="result-window">
+            <div className="res-titlebar">
+              <div className="dot dot-r"/><div className="dot dot-y"/><div className="dot dot-g"/>
+              <div className="res-titlebar-name">Script2Study</div>
+              <div className="res-header-btns">
+                <button className="btn-xs btn-xs-blue" onClick={printPDF}>↓ PDF</button>
+                <button className="btn-xs btn-xs-ghost" onClick={()=>{setScreen("input");setResult(null);}}>새 교재</button>
+              </div>
             </div>
-            <div className="hbtns">
-              <button className="btn-pdf" onClick={printPDF}>⬇ PDF</button>
-              <button className="btn-back" onClick={() => { setScreen("input"); setResult(null); }}>← 새 교재</button>
+            <div className="mob-tabs">
+              {TABS.map(t => (
+                <button key={t.id} className={`mob-tab ${tab===t.id?"on":""}`} onClick={()=>setTab(t.id)}>
+                  {t.icon} {t.label}
+                </button>
+              ))}
             </div>
-          </div>
-
-          <div className="tb">
-            {tabs.map(t => (
-              <button key={t.id} className={`tbtn ${tab === t.id ? "on" : ""}`} onClick={() => setTab(t.id)}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="ca">
-            {parts.length > 1 && ["sentences", "expressions"].includes(tab) && (
-              <div className="ps">
-                {parts.map((p, i) => (
-                  <button key={i} className={`pp ${partIdx === i ? "on" : ""}`} onClick={() => setPartIdx(i)}>
-                    {p.partTitle || `Part ${i + 1}`}
-                  </button>
+            <div className="res-body">
+              <div className="res-sidebar">
+                <div className="res-sb-title">교재</div>
+                {TABS.map(item => (
+                  <div key={item.id} className={`res-sb-item ${tab===item.id?"on":""}`} onClick={()=>setTab(item.id)}>
+                    <span className="res-sb-icon">{item.icon}</span>{item.label}
+                  </div>
                 ))}
               </div>
-            )}
-
-            {tab === "sentences" && (
-              <>
-                <div className="sl">
-                  {(part.sentences || []).map((s, i) => (
-                    <div key={i} className="sp2">
-                      <div className="en">{s.en}</div>
-                      <div className="ko">{s.ko}</div>
-                    </div>
-                  ))}
-                </div>
-                {part.shadowingSentences?.length > 0 && (
-                  <div className="sc sc-accent-green" style={{ marginTop: 22 }}>
-                    <div className="sct">🎙 이 파트 쉐도잉</div>
-                    {part.shadowingSentences.map((s, i) => <div key={i} className="ss">{s}</div>)}
-                  </div>
-                )}
-                {part.learningPoints && (
-                  <div className="sc sc-accent-yellow">
-                    <div className="sct">📌 학습 포인트</div>
-                    <div className="lb">{part.learningPoints}</div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {tab === "expressions" && (
-              <>
-                <div className="sc sc-accent-green">
-                  <div className="sct">💡 핵심 표현</div>
-                  {(part.keyExpressions || []).map((e, i) => (
-                    <div key={i} className="ei">
-                      <div className="et">
-                        <span className="etx">{e.expression}</span>
-                        {e.star && <span className="star-badge">PICK</span>}
-                      </div>
-                      <div className="em">{e.meaning}</div>
-                      <div className="eex">예) {e.example}</div>
-                    </div>
-                  ))}
-                </div>
-                {(part.conversationPoints || []).length > 0 && (
-                  <div className="sc sc-accent-yellow">
-                    <div className="sct">💬 회화 포인트</div>
-                    {part.conversationPoints.map((c, i) => <div key={i} className="ci">{c}</div>)}
-                  </div>
-                )}
-              </>
-            )}
-
-            {tab === "memory" && (
-              <>
-                <div className="mi">회화에서 바로 꺼낼 수 있는 표현만 모았어요 📌</div>
-                <div className="mg">
-                  {(result.memoryCards || []).map((m, i) => (
-                    <div key={i} className="mc">
-                      <div className="mx">{m.expression}</div>
-                      <div className="mm">{m.meaning}</div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {tab === "shadowing" && (
-              <>
-                <div className="si2">Day 1부터 소리 내서 따라 말해보세요 🎙</div>
-                {(result.shadowingTraining || []).map((day, i) => (
-                  <div key={i} className="dc">
-                    <div className="dl">Day {day.day}</div>
-                    {(day.sentences || []).map((s, j) => (
-                      <div key={j} className="ds">
-                        <span className="di">{j + 1}</span>
-                        <span>{s}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </>
-            )}
-
-            {tab === "workbook" && (
-              <>
-                <div className="wl">1. 빈칸 채우기</div>
-                {(result.workbook?.fillInBlank || []).map((q, i) => (
-                  <div key={i} className="wi">
-                    <div className="wq">{i + 1}. {q.question}</div>
-                    {reveals[`f${i}`] ? <div className="wa">정답: {q.answer}</div>
-                      : <button className="wr" onClick={() => reveal(`f${i}`)}>정답 보기</button>}
-                  </div>
-                ))}
-                <div className="wl">2. 표현 매칭</div>
-                <div className="wi">
-                  <table className="mt">
-                    <thead><tr><th>표현</th><th>뜻</th></tr></thead>
-                    <tbody>
-                      {(result.workbook?.matching || []).map((m, i) => (
-                        <tr key={i}>
-                          <td>{m.expression}</td>
-                          <td className={showMatch ? "" : "mh"}>{m.meaning}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <button className="smb" onClick={() => setShowMatch(p => !p)}>
-                    {showMatch ? "뜻 숨기기" : "뜻 보기"}
-                  </button>
-                </div>
-                <div className="wl">3. 한→영 영작</div>
-                {(result.workbook?.translation || []).map((t, i) => (
-                  <div key={i} className="wi">
-                    <div className="wq">{i + 1}. {t.korean}</div>
-                    {reveals[`t${i}`] ? <div className="wa">{t.english}</div>
-                      : <button className="wr" onClick={() => reveal(`t${i}`)}>정답 보기</button>}
-                  </div>
-                ))}
-                <div className="wl">4. 스스로 말해보기</div>
-                {(result.workbook?.speakingQuestions || []).map((q, i) => (
-                  <div key={i} className="qi">
-                    <span className="qb">Q{i + 1}</span>
-                    <span className="qt">{q}</span>
-                  </div>
-                ))}
-              </>
-            )}
+              <div className="res-main">{renderContent()}</div>
+            </div>
           </div>
         </div>
       </>
@@ -619,30 +597,50 @@ export default function App() {
     <>
       <Head><title>Script2Study</title></Head>
       <style jsx global>{G}</style>
-      <div className="input-bg">
-        <div className="input-wrap">
-          <div className="brand">
-            <div className="brand-name">Script<span>2</span>Study</div>
-            <span className="brand-tag">영어 교재 자동 생성기</span>
+      <div className="input-screen">
+        <div className="finder-window">
+          <div className="titlebar">
+            <div className="dot dot-r"/><div className="dot dot-y"/><div className="dot dot-g"/>
+            <div className="titlebar-name">Script2Study</div>
           </div>
-          <div className="field">
-            <label className="lbl">콘텐츠 제목 (선택)</label>
-            <input className="inp" type="text" placeholder="예: Hey Tablo EP.1 — MBTI는 옛말?"
-              value={title} onChange={e => setTitle(e.target.value)} />
-          </div>
-          <div className="field">
-            <label className="lbl">영어 스크립트 * (최대 10,000자)</label>
-            <textarea className="inp ta"
-              placeholder={"여기에 영어 원문을 붙여넣으세요\n팟캐스트, 유튜브, 드라마 대본, 인터뷰 등 모두 OK"}
-              value={script} onChange={e => setScript(e.target.value)} />
-            <div className="cnt">{script.length.toLocaleString()} / 10,000자</div>
-          </div>
-          <button className="btn-gen" onClick={generate} disabled={!script.trim()}>
-            교재 자동 생성 →
-          </button>
-          {error && <div className="err">{error}</div>}
-          <div className="tip">
-            💡 <strong>Tip.</strong> 최대 10,000자까지 지원해요. 긴 스크립트는 Sonnet 모델로 자동 전환돼요.
+          <div className="finder-body">
+            <div className="sidebar">
+              <div className="sb-section">
+                <div className="sb-label">메뉴</div>
+                <div className="sb-item active"><span className="sb-icon">📝</span>새 교재</div>
+                <div className="sb-item"><span className="sb-icon">📂</span>최근 교재</div>
+              </div>
+              <div className="sb-section">
+                <div className="sb-label">교재 유형</div>
+                <div className="sb-item"><span className="sb-icon">🎙</span>팟캐스트</div>
+                <div className="sb-item"><span className="sb-icon">📺</span>유튜브</div>
+                <div className="sb-item"><span className="sb-icon">🎬</span>드라마</div>
+                <div className="sb-item"><span className="sb-icon">📰</span>인터뷰</div>
+              </div>
+            </div>
+            <div className="main-panel">
+              <div className="main-eyebrow">Script2Study</div>
+              <div className="main-title">새 교재 만들기</div>
+              <div className="field">
+                <label className="lbl">콘텐츠 제목 (선택)</label>
+                <input className="inp" type="text" placeholder="예: Hey Tablo EP.1 — MBTI는 옛말?"
+                  value={title} onChange={e=>setTitle(e.target.value)}/>
+              </div>
+              <div className="field">
+                <label className="lbl">영어 스크립트 * (최대 10,000자)</label>
+                <textarea className="inp ta"
+                  placeholder={"여기에 영어 원문을 붙여넣으세요\n팟캐스트, 유튜브, 드라마 대본, 인터뷰 등 모두 OK"}
+                  value={script} onChange={e=>setScript(e.target.value)}/>
+                <div className="cnt">{script.length.toLocaleString()} / 10,000자</div>
+              </div>
+              <button className="btn-gen" onClick={generate} disabled={!script.trim()}>
+                교재 자동 생성 →
+              </button>
+              {error && <div className="err">{error}</div>}
+              <div className="tip">
+                💡 최대 10,000자까지 지원해요. 긴 스크립트는 Sonnet 모델로 자동 전환돼요.
+              </div>
+            </div>
           </div>
         </div>
       </div>
