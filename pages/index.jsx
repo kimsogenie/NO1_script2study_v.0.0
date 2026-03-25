@@ -3,7 +3,8 @@ import Head from "next/head";
 
 const VERSION = "v0.8";
 const COPYRIGHT = `© 2025 kimsogenie. All rights reserved.`;
-  { ko: "늦었다고 생각할 때가 진짜 너무 늦은 거다. 그러니 지금 당장 시작해라." },
+
+const QUOTES = [
   { ko: "시작은 반이 아니다. 시작은 시작일 뿐이다." },
   { ko: "열심히 한다고 다 되는 게 아니다. 잘해야 한다." },
   { ko: "성공은 99%의 빽과 1%의 재능으로 이루어진다." },
