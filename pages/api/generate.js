@@ -9,13 +9,21 @@ const SYSTEM_PROMPT = `당신은 영어 회화 교재 제작 전문가입니다.
       "partNumber": 1,
       "partTitle": "Part 1: 제목",
       "sentences": [{"en": "English sentence.", "ko": "한국어 해석."}],
-      "keyExpressions": [{"expression": "hang out with", "meaning": "~와 어울리다", "example": "I hung out with friends.", "star": true}],
+      "keyExpressions": [
+        {
+          "expression": "hang out with",
+          "meaning": "~와 어울리다",
+          "example": "I hung out with friends.",
+          "star": true,
+          "alternatives": ["spend time with", "chill with", "kick it with"]
+        }
+      ],
       "conversationPoints": ["회화 포인트 설명"],
       "shadowingSentences": ["shadowing sentence"],
       "learningPoints": "핵심 요약 1~2줄"
     }
   ],
-  "memoryCards": [{"expression": "not going to fly", "meaning": "안 통하다"}],
+  "memoryCards": [{"expression": "not going to fly", "meaning": "안 통하다", "alternatives": ["won't work", "won't cut it"]}],
   "shadowingTraining": [
     {"day": 1, "sentences": ["s1","s2","s3","s4","s5"]}
   ],
@@ -29,11 +37,12 @@ const SYSTEM_PROMPT = `당신은 영어 회화 교재 제작 전문가입니다.
 
 규칙:
 - parts: 스크립트 길이에 따라 2~4개
-- keyExpressions: 파트당 5개
+- keyExpressions: 파트당 5개, 각 표현마다 alternatives 2~3개 포함 (실제 원어민이 쓰는 대체/유사 표현)
 - shadowingSentences: 파트당 5개
 - conversationPoints: 파트당 3개
 - shadowingTraining: Day 1~5
 - workbook 각 섹션 5개씩
+- memoryCards: 각 항목에 alternatives 2개 포함
 - 설명은 자연스럽고 간결하게
 - JSON 반드시 완전하게 닫을 것`;
 
@@ -42,13 +51,8 @@ export default async function handler(req, res) {
   const { script, title } = req.body;
   if (!script) return res.status(400).json({ error: "스크립트가 없어요." });
 
-  // 10,000자 제한
   const trimmed = script.length > 10000 ? script.slice(0, 10000) + "\n...(이후 생략)" : script;
-
-  // 길이에 따라 모델 선택: 3000자 이상이면 Sonnet, 이하면 Haiku
-  const model = trimmed.length > 3000
-    ? "claude-sonnet-4-20250514"
-    : "claude-haiku-4-5-20251001";
+  const model = trimmed.length > 3000 ? "claude-sonnet-4-20250514" : "claude-haiku-4-5-20251001";
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -73,8 +77,7 @@ export default async function handler(req, res) {
     }
 
     try {
-      const parsed = JSON.parse(cleaned);
-      res.status(200).json(parsed);
+      res.status(200).json(JSON.parse(cleaned));
     } catch {
       res.status(500).json({ error: "교재 형식 오류예요. 스크립트를 조금 줄여서 다시 시도해주세요." });
     }
