@@ -444,7 +444,11 @@ const SCRIPT_METHODS = [
     title:"ChatGPT / Claude",
     desc:"영상 링크나 내용을 AI에 붙여넣고 \"영어 스크립트로 정리해줘\"라고 하면 돼요.",
     link:null,
-    linkText:null
+    linkText:null,
+    subLinks:[
+      { label:"ChatGPT 열기 →", url:"https://chat.openai.com" },
+      { label:"Claude 열기 →", url:"https://claude.ai" },
+    ]
   },
   {
     icon:"📋",
@@ -934,12 +938,25 @@ export default function App() {
 
                 {showHelper && SCRIPT_METHODS.map((m, i) => (
                   <div key={i} className="script-method"
-                    onClick={()=> m.link && window.open(m.link,"_blank")}>
+                    onClick={()=> m.link && window.open(m.link,"_blank")}
+                    style={{cursor: m.link ? "pointer" : "default"}}>
                     <div className="sm-icon">{m.icon}</div>
                     <div className="sm-body">
                       <div className="sm-title">{m.title}</div>
                       <div className="sm-desc">{m.desc}</div>
                       {m.link && <div className="sm-link">{m.linkText}</div>}
+                      {m.subLinks && (
+                        <div style={{display:"flex",gap:10,marginTop:6,flexWrap:"wrap"}}>
+                          {m.subLinks.map((sl,j) => (
+                            <span key={j}
+                              onClick={e=>{e.stopPropagation();window.open(sl.url,"_blank");}}
+                              className="sm-link"
+                              style={{cursor:"pointer"}}>
+                              {sl.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
