@@ -15,7 +15,8 @@ const SYSTEM_PROMPT = `당신은 영어 회화 교재 제작 전문가입니다.
           "meaning": "~와 어울리다",
           "example": "I hung out with friends.",
           "star": true,
-          "alternatives": ["spend time with", "chill with", "kick it with"]
+          "alternatives": ["spend time with", "chill with"],
+          "examTags": ["토스", "오픽"]
         }
       ],
       "conversationPoints": ["회화 포인트 설명"],
@@ -23,7 +24,7 @@ const SYSTEM_PROMPT = `당신은 영어 회화 교재 제작 전문가입니다.
       "learningPoints": "핵심 요약 1~2줄"
     }
   ],
-  "memoryCards": [{"expression": "not going to fly", "meaning": "안 통하다", "alternatives": ["won't work", "won't cut it"]}],
+  "memoryCards": [{"expression": "not going to fly", "meaning": "안 통하다", "alternatives": ["won't work", "won't cut it"], "examTags": ["토익"]}],
   "shadowingTraining": [
     {"day": 1, "sentences": ["s1","s2","s3","s4","s5"]}
   ],
@@ -35,15 +36,24 @@ const SYSTEM_PROMPT = `당신은 영어 회화 교재 제작 전문가입니다.
   }
 }
 
-규칙:
-- parts: 스크립트 길이에 따라 2~4개
-- keyExpressions: 파트당 5개, 각 표현마다 alternatives 2~3개 포함 (실제 원어민이 쓰는 대체/유사 표현)
+examTags 규칙 (반드시 지킬 것):
+- 각 keyExpression과 memoryCard마다 examTags 배열을 반드시 포함할 것
+- 해당 표현이 실제로 자주 출제되거나 사용되는 시험/상황에만 태그 붙이기
+- 사용 가능한 태그: "토익", "토스", "오픽", "수능"
+- 해당 없으면 빈 배열 [] 로 두기
+- 판단 기준:
+  • 토익: 비즈니스/일상 문어체, Part 5~7 어휘/독해에 자주 등장하는 표현
+  • 토스: 짧고 자연스러운 구어체, 실생활 대화에서 바로 쓸 수 있는 표현
+  • 오픽: 경험 묘사, 의견 표현, 스토리텔링에 유용한 표현
+  • 수능: 독해/듣기 지문에 자주 나오는 표현
+
+기타 규칙:
+- parts: 2~4개
+- keyExpressions: 파트당 5개
 - shadowingSentences: 파트당 5개
 - conversationPoints: 파트당 3개
 - shadowingTraining: Day 1~5
 - workbook 각 섹션 5개씩
-- memoryCards: 각 항목에 alternatives 2개 포함
-- 설명은 자연스럽고 간결하게
 - JSON 반드시 완전하게 닫을 것`;
 
 export default async function handler(req, res) {
