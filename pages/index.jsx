@@ -1,25 +1,67 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Head from "next/head";
+
+const QUOTES = [
+  { ko: "늦었다고 생각할 때가 진짜 너무 늦은 거다. 그러니 지금 당장 시작해라." },
+  { ko: "시작은 반이 아니다. 시작은 시작일 뿐이다." },
+  { ko: "열심히 한다고 다 되는 게 아니다. 잘해야 한다." },
+  { ko: "성공은 99%의 빽과 1%의 재능으로 이루어진다." },
+  { ko: "개천에서 용 난 사람 만나기 힘들다. 개천에서 용 쓰면 미꾸라지 된다." },
+  { ko: "참을 인(忍) 세 번이면 호구 된다." },
+  { ko: "가는 말이 고우면 얕본다." },
+  { ko: "내 너 그럴 줄 알았다. 알았으면 제발 미리 말해줘라." },
+  { ko: "티끌 모아 티끌이다." },
+  { ko: "나까지 나설 필요 없다." },
+  { ko: "선행은 몰래 할 필요가 없다. 대놓고 해라. 그래야 생색도 내고 알아준다." },
+  { ko: "어려운 길은 길이 아니다." },
+  { ko: "효도는 셀프다." },
+  { ko: "안 되면 말고." },
+  { ko: "내가 나를 안 아끼면 아무도 나를 안 아껴준다." },
+  { ko: "한 번 인생은 나를 위해 사는 거다." },
+  { ko: "돈이 전부는 아니지만, 그만한 게 없다." },
+  { ko: "예술은 비싸고 인생은 더럽다." },
+  { ko: "고생 끝에 낙이 오는 게 아니라, 고생 끝에 골병 난다." },
+  { ko: "세상은 넓고 할 일은 많지 않다. 할 일은 정해져 있다." },
+];
 
 function useTTS() {
   const [speaking, setSpeaking] = useState(null);
+  const synthRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      synthRef.current = window.speechSynthesis;
+      synthRef.current?.getVoices();
+      if (window.speechSynthesis.onvoiceschanged !== undefined)
+        window.speechSynthesis.onvoiceschanged = () => {};
+    }
+  }, []);
+
   const speak = useCallback((text, id) => {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+    const synth = synthRef.current || (typeof window !== "undefined" ? window.speechSynthesis : null);
+    if (!synth) return;
+    synth.cancel();
     if (speaking === id) { setSpeaking(null); return; }
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "en-US"; u.rate = 0.9;
-    const voices = window.speechSynthesis.getVoices();
-    const en = voices.find(v => v.lang.startsWith("en") && v.name.includes("Google"))
-      || voices.find(v => v.lang.startsWith("en-US"))
-      || voices.find(v => v.lang.startsWith("en"));
-    if (en) u.voice = en;
-    u.onstart = () => setSpeaking(id);
-    u.onend = () => setSpeaking(null);
-    u.onerror = () => setSpeaking(null);
-    window.speechSynthesis.speak(u);
+
+    const trySpeak = () => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "en-US"; u.rate = 0.88; u.pitch = 1; u.volume = 1;
+      const voices = synth.getVoices();
+      const en = voices.find(v => v.lang === "en-US" && /Samantha|Karen|Daniel/i.test(v.name))
+        || voices.find(v => v.lang === "en-US")
+        || voices.find(v => v.lang.startsWith("en"));
+      if (en) u.voice = en;
+      u.onstart = () => setSpeaking(id);
+      u.onend = () => setSpeaking(null);
+      u.onerror = () => setSpeaking(null);
+      synth.speak(u);
+    };
+
+    if (synth.getVoices().length === 0) setTimeout(trySpeak, 300);
+    else trySpeak();
   }, [speaking]);
-  const stop = useCallback(() => { window.speechSynthesis?.cancel(); setSpeaking(null); }, []);
+
+  const stop = useCallback(() => { synthRef.current?.cancel(); setSpeaking(null); }, []);
   return { speak, stop, speaking };
 }
 
@@ -250,6 +292,62 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .exam-tag-오픽{background:#E3F2FD;color:#1565C0;}
 .exam-tag-수능{background:#F3E5F5;color:#6A1B9A;}
 
+/* 범례 */
+.legend-box{
+  display:flex;align-items:center;gap:6px;padding:8px 12px;
+  background:var(--panel);border-radius:8px;margin-bottom:14px;
+  font-size:12px;color:var(--ink3);flex-wrap:wrap;
+}
+.legend-item{display:flex;align-items:center;gap:4px;}
+
+/* 워크북 직접 입력 */
+.wb-input{
+  width:100%;padding:9px 12px;background:var(--panel);
+  border:1.5px solid var(--sidebar-border);border-radius:8px;
+  font-size:14px;font-family:inherit;color:var(--ink);outline:none;
+  transition:border-color .2s;margin-bottom:8px;
+}
+.wb-input:focus{border-color:var(--blue);background:var(--win);}
+.wb-input::placeholder{color:var(--ink4);}
+.wb-correct{border-color:#34C759!important;background:#F0FFF4!important;}
+.wb-wrong{border-color:#FF3B30!important;background:#FFF0EF!important;}
+.wb-result{font-size:12px;margin-top:4px;font-weight:600;}
+.wb-result.ok{color:#34C759;}
+.wb-result.no{color:#FF3B30;}
+.wb-check-btn{
+  padding:7px 14px;background:var(--blue);color:#fff;border:none;
+  border-radius:7px;font-size:13px;font-family:inherit;cursor:pointer;transition:opacity .15s;
+}
+.wb-check-btn:hover{opacity:.85;}
+.wb-rehide{
+  padding:6px 12px;background:transparent;border:1.5px solid var(--sidebar-border);
+  border-radius:7px;font-size:12px;font-family:inherit;cursor:pointer;
+  color:var(--ink3);transition:all .15s;margin-left:8px;
+}
+.wb-rehide:hover{border-color:var(--ink);color:var(--ink);}
+
+/* 로딩 명언 */
+.load-quote{
+  max-width:320px;text-align:center;padding:20px 24px;
+  background:rgba(255,255,255,.85);border-radius:16px;
+  border:1px solid rgba(0,0,0,.06);
+}
+.load-quote-ko{font-size:15px;font-weight:700;color:var(--ink);line-height:1.7;margin-bottom:8px;}
+.load-quote-author{font-size:12px;color:var(--ink3);font-weight:600;}
+.load-pms{
+  width:120px;height:120px;border-radius:50%;
+  object-fit:cover;object-position:top;
+  border:3px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.15);
+  animation:bob 1.4s ease-in-out infinite;
+}
+
+/* 입력 화면 태그라인 */
+.tagline-bar{
+  display:flex;align-items:center;gap:8px;margin-bottom:20px;
+  padding:10px 14px;background:var(--blue-light);border-radius:10px;
+}
+.tagline-text{font-size:13px;color:var(--blue);font-weight:600;line-height:1.5;}
+
 .conv-item{padding:10px 13px;background:var(--pink-light);border-radius:8px;border-left:3px solid var(--pink);font-size:14px;color:var(--ink2);line-height:1.7;margin-bottom:7px;}
 .conv-item:last-child{margin-bottom:0;}
 .sh-item{display:flex;align-items:center;gap:9px;padding:9px 13px;background:var(--blue-light);border-radius:8px;border-left:3px solid var(--blue);margin-bottom:7px;}
@@ -359,22 +457,35 @@ export default function App() {
   const [tab, setTab] = useState("sentences");
   const [partIdx, setPartIdx] = useState(0);
   const [reveals, setReveals] = useState({});
+  const [wbInputs, setWbInputs] = useState({});
+  const [wbChecked, setWbChecked] = useState({});
   const [showMatch, setShowMatch] = useState(false);
   const [showHelper, setShowHelper] = useState(false);
+  const [quoteIdx, setQuoteIdx] = useState(0);
   const { speak, speaking } = useTTS();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
-      window.speechSynthesis?.getVoices();
     }
+    setQuoteIdx(Math.floor(Math.random() * QUOTES.length));
   }, []);
 
+  // 로딩 중 명언 순환
+  useEffect(() => {
+    if (screen !== "loading") return;
+    const t = setInterval(() => setQuoteIdx(i => (i + 1) % QUOTES.length), 4000);
+    return () => clearInterval(t);
+  }, [screen]);
+
   const reveal = (k) => setReveals(p => ({...p,[k]:true}));
+  const unrevel = (k) => setReveals(p => ({...p,[k]:false}));
+  const setWbInput = (k, v) => setWbInputs(p => ({...p,[k]:v}));
+  const checkWb = (k, answer) => setWbChecked(p => ({...p,[k]: (wbInputs[k]||"").trim().toLowerCase() === answer.toLowerCase() ? "ok" : "no"}));
 
   const generate = async () => {
     if (!script.trim()) { setError("영어 스크립트를 먼저 붙여넣어 주세요."); return; }
-    setScreen("loading"); setError(""); setReveals({}); setShowMatch(false);
+    setScreen("loading"); setError(""); setReveals({}); setWbInputs({}); setWbChecked({}); setShowMatch(false);
     try {
       const res = await fetch("/api/generate", {
         method:"POST", headers:{"Content-Type":"application/json"},
@@ -460,10 +571,13 @@ export default function App() {
       <Head><title>Script2Study</title></Head>
       <style jsx global>{G}</style>
       <div className="load-screen">
-        <div className="load-folder">📂</div>
+        <img src="/parkmyungsoo.png" className="load-pms" alt="박명수" />
         <div className="load-title">교재 만드는 중...</div>
-        <div className="load-sub">잠깐만 기다려 주세요</div>
         <div className="load-bar"><div className="load-bar-fill"/></div>
+        <div className="load-quote">
+          <div className="load-quote-ko">"{QUOTES[quoteIdx].ko}"</div>
+          <div className="load-quote-author">— 박명수 어록</div>
+        </div>
       </div>
     </>
   );
@@ -532,13 +646,17 @@ export default function App() {
               ))}
             </div>
           )}
+          {/* 범례 */}
+          <div className="legend-box">
+            <div className="legend-item">⭐ <span>= AI가 선정한 이 파트 핵심 표현</span></div>
+          </div>
           <div className="card">
             {(part.keyExpressions||[]).map((e,i) => (
               <div key={i} className="expr-row">
                 <div className="expr-header">
                   <div className="expr-top">
                     <span className="expr-word">{e.expression}</span>
-                    {e.star && <span className="pick-tag">PICK</span>}
+                    {e.star && <span style={{fontSize:16}}>⭐</span>}
                   </div>
                   <TTSBtn text={e.expression} id={`e-${partIdx}-${i}`} />
                 </div>
@@ -629,10 +747,28 @@ export default function App() {
           {(result.workbook?.fillInBlank||[]).map((q,i) => (
             <div key={i} className="wb-card">
               <div className="wb-q">{i+1}. {q.question}</div>
-              {reveals[`f${i}`] ? <div className="wb-ans">정답: {q.answer}</div>
-                : <button className="btn-rev" onClick={()=>reveal(`f${i}`)}>정답 보기</button>}
+              <input
+                className={`wb-input ${wbChecked[`f${i}`]==="ok"?"wb-correct":wbChecked[`f${i}`]==="no"?"wb-wrong":""}`}
+                placeholder="여기에 답 입력..."
+                value={wbInputs[`f${i}`]||""}
+                onChange={e=>setWbInput(`f${i}`,e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&checkWb(`f${i}`,q.answer)}
+              />
+              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                <button className="wb-check-btn" onClick={()=>checkWb(`f${i}`,q.answer)}>확인</button>
+                {reveals[`f${i}`]
+                  ? <button className="wb-rehide" onClick={()=>unrevel(`f${i}`)}>정답 숨기기</button>
+                  : <button className="btn-rev" onClick={()=>reveal(`f${i}`)}>정답 보기</button>}
+              </div>
+              {wbChecked[`f${i}`] && (
+                <div className={`wb-result ${wbChecked[`f${i}`]}`}>
+                  {wbChecked[`f${i}`]==="ok" ? "✅ 정답이에요!" : `❌ 오답이에요. 정답: ${q.answer}`}
+                </div>
+              )}
+              {reveals[`f${i}`] && <div className="wb-ans" style={{marginTop:8}}>정답: {q.answer}</div>}
             </div>
           ))}
+
           <div className="wb-head">2. 표현 매칭</div>
           <div className="wb-card">
             <table className="mtbl">
@@ -641,23 +777,35 @@ export default function App() {
                 {(result.workbook?.matching||[]).map((m,i) => (
                   <tr key={i}>
                     <td>{m.expression}</td>
-                    <td className={showMatch?"":"hidden-m"}>{m.meaning}</td>
+                    <td style={{color: showMatch ? "inherit" : "transparent", background: showMatch ? "transparent" : "var(--sidebar-border)", borderRadius:4, transition:"all .2s", userSelect: showMatch ? "auto" : "none"}}>{m.meaning}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <button className="btn-tog" onClick={()=>setShowMatch(p=>!p)}>
-              {showMatch?"뜻 숨기기":"뜻 보기"}
+              {showMatch ? "뜻 숨기기" : "뜻 보기"}
             </button>
           </div>
+
           <div className="wb-head">3. 한→영 영작</div>
           {(result.workbook?.translation||[]).map((t,i) => (
             <div key={i} className="wb-card">
               <div className="wb-q">{i+1}. {t.korean}</div>
-              {reveals[`t${i}`] ? <div className="wb-ans">{t.english}</div>
-                : <button className="btn-rev" onClick={()=>reveal(`t${i}`)}>정답 보기</button>}
+              <input
+                className="wb-input"
+                placeholder="영어로 입력해보세요..."
+                value={wbInputs[`t${i}`]||""}
+                onChange={e=>setWbInput(`t${i}`,e.target.value)}
+              />
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                {reveals[`t${i}`]
+                  ? <button className="wb-rehide" onClick={()=>unrevel(`t${i}`)}>정답 숨기기</button>
+                  : <button className="btn-rev" onClick={()=>reveal(`t${i}`)}>정답 보기</button>}
+              </div>
+              {reveals[`t${i}`] && <div className="wb-ans" style={{marginTop:8}}>{t.english}</div>}
             </div>
           ))}
+
           <div className="wb-head">4. 스스로 말해보기</div>
           {(result.workbook?.speakingQuestions||[]).map((q,i) => (
             <div key={i} className="q-item">
@@ -739,6 +887,10 @@ export default function App() {
             <div className="main-panel">
               <div className="main-eyebrow">Script2Study</div>
               <div className="main-title">새 교재 만들기</div>
+              <div className="tagline-bar">
+                <span style={{fontSize:18}}>📖</span>
+                <span className="tagline-text">좋아하는 영어 콘텐츠 스크립트로<br/>나만의 학습 교재를 자동으로 만들어드려요</span>
+              </div>
 
               <div className="field">
                 <label className="lbl">콘텐츠 제목 (선택)</label>
