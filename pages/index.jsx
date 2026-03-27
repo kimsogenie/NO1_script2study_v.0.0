@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Head from "next/head";
 
-const VERSION = "v0.8";
+const VERSION = "v0.9";
 const COPYRIGHT = `© 2025 kimsogenie. All rights reserved.`;
 
 const QUOTES = [
@@ -112,7 +112,6 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
   width:160px;flex-shrink:0;background:var(--sidebar);
   border-right:1px solid var(--sidebar-border);padding:16px 0;
 }
-/* 모바일에서 사이드바 완전히 숨김 */
 @media(max-width:600px){.sidebar{display:none;}}
 
 .sb-section{margin-bottom:18px;}
@@ -228,7 +227,8 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 }
 .mob-tab.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:600;}
 
-.res-body{display:flex;flex:1;min-height:0;}
+/* res-body: sidebar는 --sidebar 배경, main은 --win 배경으로 분리 → 회색 바 잘림 방지 */
+.res-body{display:flex;flex:1;min-height:0;background:var(--sidebar);}
 
 /* 데스크탑 사이드바 */
 .res-sidebar{
@@ -245,7 +245,8 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .res-sb-item.on{background:var(--blue-light);color:var(--blue);font-weight:600;}
 .res-sb-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
 
-.res-main{flex:1;padding:24px 22px 80px;min-width:0;overflow-y:auto;}
+/* res-main: 흰 배경으로 명시 → 사이드바 회색과 분리 */
+.res-main{flex:1;padding:24px 22px 80px;min-width:0;overflow-y:auto;background:var(--win);}
 @media(max-width:600px){.res-main{padding:18px 16px 60px;}}
 
 .sec-head{font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-.03em;margin-bottom:16px;}
@@ -350,6 +351,7 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
   border-top:1px solid var(--border);margin-top:auto;
 }
 .app-footer span{margin:0 6px;}
+.tagline-bar{
   display:flex;align-items:center;gap:8px;margin-bottom:20px;
   padding:10px 14px;background:var(--blue-light);border-radius:10px;
 }
@@ -371,11 +373,12 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .mem-alts{display:flex;flex-wrap:wrap;gap:4px;}
 .mem-alt{font-size:11px;padding:2px 7px;background:var(--panel);border-radius:999px;color:var(--ink3);}
 
+/* 쉐도잉 트레이닝 파트 카드 */
 .day-card{background:var(--win);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:9px;box-shadow:var(--shadow-sm);}
 .day-hd{font-size:13px;font-weight:700;color:var(--blue);margin-bottom:11px;display:flex;align-items:center;gap:8px;}
 .day-hd::after{content:'';flex:1;height:1px;background:var(--border);}
 .day-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--panel);font-size:14px;color:var(--ink);align-items:center;line-height:1.6;}
-.day-row:last-child{border-bottom:none;}
+.day-row:last-child{border-bottom:none;padding-bottom:0;}
 .day-num{flex-shrink:0;font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-light);border-radius:5px;padding:2px 7px;min-width:24px;text-align:center;}
 .day-txt{flex:1;}
 
@@ -416,7 +419,7 @@ const PRINT_CSS = `
   td{padding:8px 11px;border-bottom:1px solid #F0F0F0;}
   .shi{padding:7px 11px;background:#EEF5FC;border-left:3px solid #4A90D9;margin-bottom:5px;font-size:13px;border-radius:4px;}
   .lb{padding:10px 13px;background:#F7F7F7;border-radius:7px;font-size:13px;color:#3C3C3C;line-height:1.7;}
-  .dh{font-size:13px;font-weight:700;color:#4A90D9;margin:11px 0 5px;}
+  .ph{font-size:13px;font-weight:700;color:#4A90D9;margin:11px 0 5px;}
   .wr{padding:7px 0;border-bottom:1px solid #F0F0F0;font-size:13px;}
   .ans{color:#4A90D9;font-weight:600;}
   .qr{padding:8px 11px;background:#F7F7F7;border-radius:6px;margin-bottom:5px;font-size:13px;}
@@ -482,7 +485,6 @@ export default function App() {
     setQuoteIdx(Math.floor(Math.random() * QUOTES.length));
   }, []);
 
-  // 로딩 중 명언 순환
   useEffect(() => {
     if (screen !== "loading") return;
     const t = setInterval(() => setQuoteIdx(i => (i + 1) % QUOTES.length), 4000);
@@ -537,9 +539,9 @@ export default function App() {
     }
     if (result.shadowingTraining?.length) {
       h += `<div class="pt">쉐도잉 트레이닝</div>`;
-      result.shadowingTraining.forEach(d => {
-        h += `<div class="dh">Day ${d.day}</div>`;
-        (d.sentences||[]).forEach((s,i) => { h += `<div class="wr">${i+1}. ${s}</div>`; });
+      result.shadowingTraining.forEach(part => {
+        h += `<div class="ph">${part.partTitle || `Part ${part.partNumber}`}</div>`;
+        (part.sentences||[]).forEach((s,i) => { h += `<div class="wr">${i+1}. ${s}</div>`; });
       });
     }
     if (result.workbook) {
@@ -657,7 +659,6 @@ export default function App() {
               ))}
             </div>
           )}
-          {/* 범례 */}
           <div className="legend-box">
             <div className="legend-item">⭐ <span>= AI가 선정한 이 파트 핵심 표현</span></div>
           </div>
@@ -732,14 +733,15 @@ export default function App() {
         </>
       );
 
+      // ── 쉐도잉: Day → Part 구조로 변경
       if (tab === "shadowing") return (
         <>
           <div className="sec-head">쉐도잉 트레이닝</div>
-          <p style={{fontSize:13,color:"var(--ink3)",marginBottom:14}}>Day 1부터 소리 내서 따라 말해보세요 🎙</p>
-          {(result.shadowingTraining||[]).map((day,i) => (
+          <p style={{fontSize:13,color:"var(--ink3)",marginBottom:14}}>파트별로 소리 내서 따라 말해보세요 🎙</p>
+          {(result.shadowingTraining||[]).map((part,i) => (
             <div key={i} className="day-card">
-              <div className="day-hd">Day {day.day}</div>
-              {(day.sentences||[]).map((s,j) => (
+              <div className="day-hd">{part.partTitle || `Part ${part.partNumber}`}</div>
+              {(part.sentences||[]).map((s,j) => (
                 <div key={j} className="day-row">
                   <span className="day-num">{j+1}</span>
                   <span className="day-txt">{s}</span>
@@ -881,7 +883,6 @@ export default function App() {
             <div className="titlebar-name">Script2Study</div>
           </div>
           <div className="finder-body">
-            {/* 데스크탑 사이드바 */}
             <div className="sidebar">
               <div className="sb-section">
                 <div className="sb-label">메뉴</div>
@@ -897,7 +898,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* 메인 */}
             <div className="main-panel">
               <div className="main-eyebrow">Script2Study</div>
               <div className="main-title">새 교재 만들기</div>
@@ -925,7 +925,6 @@ export default function App() {
               </button>
               {error && <div className="err">{error}</div>}
 
-              {/* 스크립트 없나요? 섹션 */}
               <div className="no-script-box">
                 <div className="no-script-title">
                   🤔 잠깐! 스크립트가 없으신가요?
