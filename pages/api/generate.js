@@ -26,7 +26,7 @@ const SYSTEM_PROMPT = `당신은 영어 회화 교재 제작 전문가입니다.
   ],
   "memoryCards": [{"expression": "not going to fly", "meaning": "안 통하다", "alternatives": ["won't work", "won't cut it"], "examTags": ["토익"]}],
   "shadowingTraining": [
-    {"day": 1, "sentences": ["s1","s2","s3","s4","s5"]}
+    {"partNumber": 1, "partTitle": "Part 1: 제목", "sentences": ["s1","s2","s3","s4","s5","s6","s7","s8","s9","s10"]}
   ],
   "workbook": {
     "fillInBlank": [{"question": "빈칸 문제", "answer": "정답"}],
@@ -52,7 +52,7 @@ examTags 규칙 (반드시 지킬 것):
 - keyExpressions: 파트당 5개
 - shadowingSentences: 파트당 5개
 - conversationPoints: 파트당 3개
-- shadowingTraining: Day 1~5
+- shadowingTraining: parts와 동일한 구조로 파트별 구성, 파트당 10문장
 - workbook 각 섹션 5개씩
 - JSON 반드시 완전하게 닫을 것`;
 
