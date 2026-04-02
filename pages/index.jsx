@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Head from "next/head";
 
-const VERSION = "v0.9.4";
+const VERSION = "v0.9.5";
 const COPYRIGHT = `© 2026 kimsogenie. All rights reserved.`;
 const MAX_RECENT = 5;
 
-const KAKAO_APP_KEY = "b6e810ac01f323b127717efdc6f37d46";
+const KAKAO_APP_KEY = "35f69f10d20626913adbff859a63a32d";
 const APP_URL = "https://no-1-script2study-v-0-0.vercel.app";
 
 const QUOTES = [
@@ -30,7 +30,6 @@ const QUOTES = [
   { ko: "세상은 넓고 할 일은 많지 않다. 할 일은 정해져 있다." },
 ];
 
-// ── 일반 TTS ──
 function useTTS() {
   const [speaking, setSpeaking] = useState(null);
   const synthRef = useRef(null);
@@ -65,7 +64,6 @@ function useTTS() {
   return { speak, stop, speaking };
 }
 
-// ── 반복 재생 TTS ──
 function useRepeatTTS() {
   const [repeating, setRepeating] = useState(null);
   const activeIdRef = useRef(null);
@@ -163,7 +161,6 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .sm-desc{font-size:12px;color:var(--ink3);line-height:1.5;}
 .sm-link{font-size:11px;color:var(--pink-mid);margin-top:3px;font-weight:600;}
 
-/* 최근 교재 */
 .mob-view-bar{display:none;gap:8px;padding-bottom:16px;}
 @media(max-width:600px){.mob-view-bar{display:flex;}}
 .mob-view-btn{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;border:1.5px solid var(--sidebar-border);background:var(--win);color:var(--ink2);cursor:pointer;transition:all .15s;}
@@ -179,7 +176,6 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .recent-card-del{flex-shrink:0;padding:5px 8px;background:none;border:none;font-size:14px;color:var(--ink4);cursor:pointer;border-radius:6px;transition:background .15s,color .15s;}
 .recent-card-del:hover{background:rgba(255,59,48,.1);color:#FF3B30;}
 
-/* LOADING */
 .load-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--bg);}
 @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
 .load-title{font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.02em;}
@@ -191,17 +187,18 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .load-quote-author{font-size:12px;color:var(--ink3);font-weight:600;}
 .load-pms{width:120px;height:120px;border-radius:50%;object-fit:cover;object-position:top;border:3px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.15);animation:bob 1.4s ease-in-out infinite;}
 
-/* RESULT */
 .result-wrap{min-height:100vh;background:var(--bg);}
 .result-window{max-width:900px;margin:0 auto;background:var(--win);min-height:100vh;box-shadow:0 0 60px rgba(0,0,0,.12);display:flex;flex-direction:column;}
 @media(min-width:900px){.result-window{min-height:auto;margin:32px auto;border-radius:16px;overflow:hidden;min-height:calc(100vh - 64px);}}
 .res-titlebar{height:40px;background:var(--sidebar);border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;padding:0 14px;gap:7px;position:sticky;top:0;z-index:30;flex-shrink:0;}
 .res-titlebar-name{flex:1;text-align:center;font-size:13px;font-weight:500;color:var(--ink3);margin-left:-36px;}
-.res-header-btns{display:flex;gap:6px;position:absolute;right:14px;}
-.btn-xs{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:opacity .15s;border:none;white-space:nowrap;}
+.res-header-btns{display:flex;gap:5px;position:absolute;right:14px;}
+.btn-xs{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;transition:opacity .15s;border:none;white-space:nowrap;}
 .btn-xs-blue{background:var(--blue);color:#fff;}.btn-xs-blue:hover{opacity:.85;}
+.btn-xs-pink{background:var(--pink-mid);color:#fff;}.btn-xs-pink:hover{opacity:.85;}
 .btn-xs-ghost{background:rgba(0,0,0,.07);color:var(--ink2);}.btn-xs-ghost:hover{background:rgba(0,0,0,.11);}
 .btn-xs-kakao{background:var(--kakao);color:var(--kakao-ink);}.btn-xs-kakao:hover{opacity:.88;}
+
 .mob-tabs{display:none;background:var(--sidebar);border-bottom:1px solid var(--sidebar-border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;}
 .mob-tabs::-webkit-scrollbar{display:none;}
 @media(max-width:700px){.mob-tabs{display:flex;}}
@@ -256,7 +253,6 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .legend-box{display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--panel);border-radius:8px;margin-bottom:14px;font-size:12px;color:var(--ink3);flex-wrap:wrap;}
 .legend-item{display:flex;align-items:center;gap:4px;}
 
-/* 워크북 */
 .wb-input{width:100%;padding:9px 12px;background:var(--panel);border:1.5px solid var(--sidebar-border);border-radius:8px;font-size:14px;font-family:inherit;color:var(--ink);outline:none;transition:border-color .2s;margin-bottom:8px;}
 .wb-input:focus{border-color:var(--pink-mid);background:var(--win);}
 .wb-input::placeholder{color:var(--ink4);}
@@ -285,7 +281,6 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .q-badge{flex-shrink:0;font-size:11px;font-weight:700;color:var(--pink-mid);background:var(--pink-light);border-radius:5px;padding:3px 8px;margin-top:1px;}
 .q-txt{font-size:14px;line-height:1.65;color:var(--ink);}
 
-/* 쉐도잉 반복 */
 .sh-repeat-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--panel);border-radius:10px;margin-bottom:14px;flex-wrap:wrap;}
 .sh-repeat-label{font-size:12px;font-weight:600;color:var(--ink3);}
 .sh-repeat-btns{display:flex;gap:5px;}
@@ -304,13 +299,12 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .repeat-btn.rp-active{background:var(--pink-mid);color:#fff;animation:ptts .8s ease-in-out infinite;}
 .rp-badge{position:absolute;top:-4px;right:-4px;font-size:9px;font-weight:800;background:var(--ink);color:#fff;border-radius:99px;padding:1px 4px;min-width:16px;text-align:center;line-height:1.4;pointer-events:none;}
 
-/* 퀴즈 */
 .quiz-info{font-size:13px;color:var(--ink3);margin-bottom:16px;line-height:1.6;}
 .quiz-score{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--panel);border-radius:10px;margin-bottom:16px;font-size:14px;font-weight:600;color:var(--ink2);}
 .quiz-score-num{font-size:22px;font-weight:800;color:var(--pink-mid);}
 .quiz-reset{margin-left:auto;padding:6px 12px;background:var(--win);border:1.5px solid var(--sidebar-border);border-radius:7px;font-size:12px;font-family:inherit;cursor:pointer;color:var(--ink3);transition:all .15s;}
 .quiz-reset:hover{border-color:var(--pink-mid);color:var(--pink-mid);}
-.quiz-card{background:var(--win);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:10px;box-shadow:var(--shadow-sm);transition:border-color .2s;}
+.quiz-card{background:var(--win);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:10px;box-shadow:var(--shadow-sm);}
 .quiz-card.qz-ok{border-color:var(--green);background:var(--green-light);}
 .quiz-card.qz-no{border-color:var(--red);background:var(--red-light);}
 .quiz-num{font-size:11px;font-weight:700;color:var(--pink-mid);background:var(--pink-light);border-radius:5px;padding:2px 8px;display:inline-block;margin-bottom:10px;}
@@ -332,27 +326,14 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .quiz-all-done-icon{font-size:48px;margin-bottom:12px;}
 .quiz-all-done-title{font-size:20px;font-weight:800;color:var(--ink);margin-bottom:6px;}
 .quiz-all-done-sub{font-size:14px;color:var(--ink3);margin-bottom:20px;}
-.quiz-retry-btn{padding:11px 24px;background:var(--pink-mid);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .15s;}
+.quiz-retry-btn{padding:11px 24px;background:var(--pink-mid);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;}
 .quiz-retry-btn:hover{opacity:.85;}
 
-/* ── 카카오 공유 배너 ── */
-.share-banner{
-  display:flex;align-items:center;gap:12px;
-  padding:14px 18px;background:var(--panel);
-  border-radius:12px;margin-bottom:18px;
-  border:1px solid var(--sidebar-border);
-}
+.share-banner{display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--panel);border-radius:12px;margin-bottom:18px;border:1px solid var(--sidebar-border);}
 .share-banner-text{flex:1;font-size:13px;color:var(--ink3);line-height:1.5;}
 .share-banner-text strong{color:var(--ink);font-weight:700;}
-.btn-kakao{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:9px 16px;background:var(--kakao);color:var(--kakao-ink);
-  border:none;border-radius:8px;font-size:13px;font-weight:700;
-  font-family:inherit;cursor:pointer;transition:opacity .15s;
-  white-space:nowrap;flex-shrink:0;
-}
+.btn-kakao{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:var(--kakao);color:var(--kakao-ink);border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .15s;white-space:nowrap;flex-shrink:0;}
 .btn-kakao:hover{opacity:.88;}
-.btn-kakao-icon{font-size:16px;}
 
 .conv-item{padding:10px 13px;background:var(--pink-light);border-radius:8px;border-left:3px solid var(--pink);font-size:14px;color:var(--ink2);line-height:1.7;margin-bottom:7px;}
 .conv-item:last-child{margin-bottom:0;}
@@ -374,13 +355,15 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .app-footer span{margin:0 6px;}
 `;
 
-const PRINT_CSS = `
+// ── HTML 파일 공통 CSS ──
+const DOC_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Pretendard',-apple-system,'Apple SD Gothic Neo',sans-serif;color:#1A1A1A;background:#fff;padding:28px 32px;}
   .doc{max-width:680px;margin:0 auto;}
-  .hdr{background:#D4849A;color:#fff;padding:18px 22px;border-radius:10px;margin-bottom:24px;}
+  .hdr{background:#D4849A;color:#fff;padding:18px 22px;border-radius:10px;margin-bottom:8px;}
   .hdr h1{font-size:20px;font-weight:700;margin-bottom:3px;}.hdr p{font-size:13px;opacity:.82;}
+  .hdr-badge{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;background:rgba(255,255,255,.25);}
   .pt{font-size:16px;font-weight:700;color:#D4849A;border-bottom:2px solid #D4849A;padding-bottom:6px;margin:22px 0 12px;}
   .sec{font-size:10px;font-weight:700;color:#7A7A7A;text-transform:uppercase;letter-spacing:.07em;margin:14px 0 7px;}
   .s{padding:8px 0;border-bottom:1px solid #E0E0E0;}.se{font-size:14px;font-weight:600;margin-bottom:3px;}.sk{font-size:13px;color:#3C3C3C;}
@@ -390,58 +373,166 @@ const PRINT_CSS = `
   .shi{padding:7px 11px;background:#FDF0F3;border-left:3px solid #D4849A;margin-bottom:5px;font-size:13px;border-radius:4px;}
   .lb{padding:10px 13px;background:#F7F7F7;border-radius:7px;font-size:13px;color:#3C3C3C;line-height:1.7;}
   .ph{font-size:13px;font-weight:700;color:#D4849A;margin:11px 0 5px;}
-  .wr{padding:7px 0;border-bottom:1px solid #E0E0E0;font-size:13px;}.ans{color:#D4849A;font-weight:600;}
+  .wr{padding:9px 0;border-bottom:1px solid #E0E0E0;font-size:13px;line-height:1.6;}
+  .ans{color:#D4849A;font-weight:600;}
+  /* 문제만 버전: 정답 숨김 */
+  .blank-line{display:inline-block;width:120px;border-bottom:1.5px solid #333;margin-left:6px;vertical-align:middle;}
+  .blank-box{display:inline-block;min-width:200px;height:28px;border:1.5px solid #D0D0D0;border-radius:4px;margin-top:4px;width:100%;}
+  .mem-blank{display:inline-block;width:80px;border-bottom:1.5px solid #999;margin-left:4px;}
   .qr{padding:8px 11px;background:#F7F7F7;border-radius:6px;margin-bottom:5px;font-size:13px;}
-  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+  .footer{margin-top:32px;padding-top:12px;border-top:1px solid #E0E0E0;font-size:11px;color:#ADADAD;text-align:center;}
 `;
 
 const TABS = [
-  {id:"sentences", label:"해석",  icon:"📄"},
-  {id:"expressions",label:"표현",  icon:"💡"},
-  {id:"memory",    label:"암기장", icon:"🧠"},
-  {id:"shadowing", label:"쉐도잉", icon:"🎙"},
-  {id:"quiz",      label:"퀴즈",   icon:"❓"},
-  {id:"workbook",  label:"워크북", icon:"✏️"},
+  {id:"sentences",label:"해석",icon:"📄"},
+  {id:"expressions",label:"표현",icon:"💡"},
+  {id:"memory",label:"암기장",icon:"🧠"},
+  {id:"shadowing",label:"쉐도잉",icon:"🎙"},
+  {id:"quiz",label:"퀴즈",icon:"❓"},
+  {id:"workbook",label:"워크북",icon:"✏️"},
 ];
 
 const SCRIPT_METHODS = [
-  { icon:"📺", title:"Downsub", desc:"유튜브/넷플릭스 링크 붙여넣으면 자막을 텍스트로 추출해줘요. 무료예요.", link:"https://downsub.com", linkText:"downsub.com →" },
-  { icon:"🤖", title:"ChatGPT / Claude", desc:"영상 링크나 내용을 AI에 붙여넣고 \"영어 스크립트로 정리해줘\"라고 하면 돼요.", link:null, linkText:null, subLinks:[{label:"ChatGPT 열기 →",url:"https://chat.openai.com"},{label:"Claude 열기 →",url:"https://claude.ai"}] },
-  { icon:"📋", title:"유튜브 자막 복사", desc:"유튜브 영상 → ··· → 스크립트 열기 → 전체 선택 복사. 자막 있는 영상이면 바로 돼요.", link:null, linkText:null },
+  {icon:"📺",title:"Downsub",desc:"유튜브/넷플릭스 링크 붙여넣으면 자막을 텍스트로 추출해줘요. 무료예요.",link:"https://downsub.com",linkText:"downsub.com →"},
+  {icon:"🤖",title:"ChatGPT / Claude",desc:"영상 링크나 내용을 AI에 붙여넣고 \"영어 스크립트로 정리해줘\"라고 하면 돼요.",link:null,linkText:null,subLinks:[{label:"ChatGPT 열기 →",url:"https://chat.openai.com"},{label:"Claude 열기 →",url:"https://claude.ai"}]},
+  {icon:"📋",title:"유튜브 자막 복사",desc:"유튜브 영상 → ··· → 스크립트 열기 → 전체 선택 복사. 자막 있는 영상이면 바로 돼요.",link:null,linkText:null},
 ];
 
-const REPEAT_OPTIONS = [1, 2, 3, 5];
+const REPEAT_OPTIONS = [1,2,3,5];
 
 const LS_KEY = "s2s_recent";
-function loadRecent() { if (typeof window==="undefined") return []; try{return JSON.parse(localStorage.getItem(LS_KEY)||"[]");}catch{return [];} }
-function saveRecent(titleStr, result) {
-  const item={id:Date.now(),title:titleStr||result.title||"제목 없음",savedAt:new Date().toISOString(),result};
-  const updated=[item,...loadRecent().filter(p=>p.title!==item.title)].slice(0,MAX_RECENT);
-  try{localStorage.setItem(LS_KEY,JSON.stringify(updated));}catch{} return updated;
-}
-function deleteRecent(id){const u=loadRecent().filter(p=>p.id!==id);try{localStorage.setItem(LS_KEY,JSON.stringify(u));}catch{} return u;}
-function formatDate(iso){const d=new Date(iso);return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}
+function loadRecent(){if(typeof window==="undefined")return[];try{return JSON.parse(localStorage.getItem(LS_KEY)||"[]");}catch{return[];}}
+function saveRecent(titleStr,result){const item={id:Date.now(),title:titleStr||result.title||"제목 없음",savedAt:new Date().toISOString(),result};const updated=[item,...loadRecent().filter(p=>p.title!==item.title)].slice(0,MAX_RECENT);try{localStorage.setItem(LS_KEY,JSON.stringify(updated));}catch{}return updated;}
+function deleteRecent(id){const u=loadRecent().filter(p=>p.id!==id);try{localStorage.setItem(LS_KEY,JSON.stringify(u));}catch{}return u;}
+function formatDate(iso){const d=new Date(iso);return`${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}
 
-// ── 카카오 공유 ──
-function shareKakao(title) {
-  if (typeof window === "undefined" || !window.Kakao) return;
-  try {
-    if (!window.Kakao.isInitialized()) {
-      window.Kakao.init(KAKAO_APP_KEY);
-    }
+function shareKakao(title){
+  if(typeof window==="undefined"||!window.Kakao)return;
+  try{
+    if(!window.Kakao.isInitialized())window.Kakao.init(KAKAO_APP_KEY);
     window.Kakao.Share.sendDefault({
-      objectType: "feed",
-      content: {
-        title: `📖 ${title || "Script2Study 교재"}`,
-        description: "영어 스크립트로 만든 AI 학습 교재예요. 해석·표현·쉐도잉·퀴즈까지 한 번에!",
-        imageUrl: `${APP_URL}/icon-512.png`,
-        link: { mobileWebUrl: APP_URL, webUrl: APP_URL },
+      objectType:"feed",
+      content:{
+        title:`📖 ${title||"Script2Study 교재"}`,
+        description:"영어 스크립트로 만든 AI 학습 교재예요. 해석·표현·쉐도잉·퀴즈까지 한 번에!",
+        imageUrl:`${APP_URL}/icon-512.png`,
+        link:{mobileWebUrl:APP_URL,webUrl:APP_URL},
       },
-      buttons: [{ title: "교재 만들러 가기", link: { mobileWebUrl: APP_URL, webUrl: APP_URL } }],
+      buttons:[{title:"교재 만들러 가기",link:{mobileWebUrl:APP_URL,webUrl:APP_URL}}],
     });
-  } catch (e) {
-    console.error("카카오 공유 오류:", e);
+  }catch(e){console.error("카카오 공유 오류:",e);}
+}
+
+// ── HTML 파일 다운로드 (정답포함 / 문제만) ──
+function downloadHTML(result, withAnswers) {
+  const safeTitle = result.title || "Script2Study";
+  const badge = withAnswers ? "📋 정답 포함 버전" : "✏️ 문제만 버전";
+  const filename = `Script2Study_${safeTitle}_${withAnswers ? "정답포함" : "문제만"}.html`;
+
+  let h = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>${safeTitle} — Script2Study</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet"/>
+    <style>${DOC_CSS}</style></head><body><div class="doc">`;
+
+  h += `<div class="hdr"><h1>Script2Study</h1><p>${safeTitle}</p><span class="hdr-badge">${badge}</span></div>`;
+
+  // ── 파트별 해석 + 표현 ──
+  (result.parts||[]).forEach(p => {
+    h += `<div class="pt">${p.partTitle||`Part ${p.partNumber}`}</div>`;
+    h += `<div class="sec">문장별 해석</div>`;
+    (p.sentences||[]).forEach(s => {h += `<div class="s"><div class="se">${s.en}</div><div class="sk">${s.ko}</div></div>`;});
+
+    if(p.keyExpressions?.length){
+      h += `<div class="sec">핵심 표현</div><table><thead><tr><th>Expression</th><th>Meaning</th><th>Example</th></tr></thead><tbody>`;
+      p.keyExpressions.forEach(e => {
+        h += `<tr><td>${e.star?"⭐ ":""}${e.expression}</td><td>${e.meaning}</td><td>${e.example}</td></tr>`;
+      });
+      h += `</tbody></table>`;
+    }
+    if(p.shadowingSentences?.length){
+      h += `<div class="sec">쉐도잉 문장</div>`;
+      p.shadowingSentences.forEach(s => {h += `<div class="shi">${s}</div>`;});
+    }
+    if(p.learningPoints) h += `<div class="sec">학습 포인트</div><div class="lb">${p.learningPoints}</div>`;
+  });
+
+  // ── 암기장 ──
+  if(result.memoryCards?.length){
+    h += `<div class="pt">전체 암기장</div>`;
+    h += `<table><thead><tr><th>Expression</th><th>${withAnswers?"Meaning":"Meaning (빈칸)"}</th><th>유사 표현</th></tr></thead><tbody>`;
+    result.memoryCards.forEach(m => {
+      const meaning = withAnswers
+        ? m.meaning
+        : `<span class="mem-blank"></span>`;
+      h += `<tr><td>${m.expression}</td><td>${meaning}</td><td style="color:#7A7A7A;font-size:11px">${(m.alternatives||[]).join(", ")}</td></tr>`;
+    });
+    h += `</tbody></table>`;
   }
+
+  // ── 쉐도잉 트레이닝 ──
+  if(result.shadowingTraining?.length){
+    h += `<div class="pt">쉐도잉 트레이닝</div>`;
+    result.shadowingTraining.forEach(part => {
+      h += `<div class="ph">${part.partTitle||`Part ${part.partNumber}`}</div>`;
+      (part.sentences||[]).forEach((s,i) => {h += `<div class="wr">${i+1}. ${s}</div>`;});
+    });
+  }
+
+  // ── 워크북 ──
+  if(result.workbook){
+    const wb = result.workbook;
+    h += `<div class="pt">워크북</div>`;
+
+    if(wb.fillInBlank?.length){
+      h += `<div class="sec">1. 빈칸 채우기</div>`;
+      wb.fillInBlank.forEach((q,i) => {
+        h += `<div class="wr">${i+1}. ${q.question}`;
+        if(withAnswers) h += `<br/><span class="ans">정답: ${q.answer}</span>`;
+        else h += `<span class="blank-line"></span>`;
+        h += `</div>`;
+      });
+    }
+
+    if(wb.matching?.length){
+      h += `<div class="sec">2. 표현 매칭</div>`;
+      h += `<table><thead><tr><th>Expression</th><th>${withAnswers?"Meaning":"Meaning (빈칸)"}</th></tr></thead><tbody>`;
+      wb.matching.forEach(m => {
+        const meaning = withAnswers ? m.meaning : `<span class="mem-blank" style="width:100px;"></span>`;
+        h += `<tr><td>${m.expression}</td><td>${meaning}</td></tr>`;
+      });
+      h += `</tbody></table>`;
+    }
+
+    if(wb.translation?.length){
+      h += `<div class="sec">3. 한→영 영작</div>`;
+      wb.translation.forEach((t,i) => {
+        h += `<div class="wr">${i+1}. ${t.korean}`;
+        if(withAnswers) h += `<br/><span class="ans">→ ${t.english}</span>`;
+        else h += `<br/><div class="blank-box"></div>`;
+        h += `</div>`;
+      });
+    }
+
+    if(wb.speakingQuestions?.length){
+      h += `<div class="sec">4. 스스로 말해보기</div>`;
+      wb.speakingQuestions.forEach((q,i) => {h += `<div class="qr">Q${i+1}. ${q}</div>`;});
+    }
+  }
+
+  h += `<div class="footer">Script2Study ${VERSION} · ${COPYRIGHT}</div>`;
+  h += `</div></body></html>`;
+
+  // 파일 다운로드 트리거
+  const blob = new Blob([h], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 export default function App() {
@@ -463,21 +554,20 @@ export default function App() {
   const [quizInputs, setQuizInputs] = useState({});
   const [quizChecked, setQuizChecked] = useState({});
   const [repeatCount, setRepeatCount] = useState(3);
-
   const { speak, speaking } = useTTS();
   const { startRepeat, stopRepeat, repeating } = useRepeatTTS();
 
   useEffect(() => {
-    if (typeof window!=="undefined"){if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});}
+    if(typeof window!=="undefined"){if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});}
     setQuoteIdx(Math.floor(Math.random()*QUOTES.length));
     setRecentList(loadRecent());
-  }, []);
+  },[]);
 
   useEffect(() => {
-    if (screen!=="loading") return;
+    if(screen!=="loading")return;
     const t=setInterval(()=>setQuoteIdx(i=>(i+1)%QUOTES.length),4000);
     return()=>clearInterval(t);
-  }, [screen]);
+  },[screen]);
 
   const reveal=(k)=>setReveals(p=>({...p,[k]:true}));
   const unrevel=(k)=>setReveals(p=>({...p,[k]:false}));
@@ -509,24 +599,6 @@ export default function App() {
   const removeRecent=(e,id)=>{e.stopPropagation();setRecentList(deleteRecent(id));};
   const goInput=()=>{stopRepeat();setScreen("input");setResult(null);setInputView("new");};
 
-  const printPDF=()=>{
-    if(!result)return;
-    let h=`<html><head><meta charset="UTF-8"/><link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet"/><style>${PRINT_CSS}</style></head><body><div class="doc">`;
-    h+=`<div class="hdr"><h1>Script2Study</h1><p>${result.title||""}</p></div>`;
-    (result.parts||[]).forEach(p=>{
-      h+=`<div class="pt">${p.partTitle||`Part ${p.partNumber}`}</div><div class="sec">문장별 해석</div>`;
-      (p.sentences||[]).forEach(s=>{h+=`<div class="s"><div class="se">${s.en}</div><div class="sk">${s.ko}</div></div>`;});
-      if(p.keyExpressions?.length){h+=`<div class="sec">핵심 표현</div><table><thead><tr><th>Expression</th><th>Meaning</th><th>Example</th><th>유사 표현</th></tr></thead><tbody>`;p.keyExpressions.forEach(e=>{h+=`<tr><td>${e.star?"⭐ ":""}${e.expression}</td><td>${e.meaning}</td><td>${e.example}</td><td style="color:#7A7A7A;font-size:11px">${(e.alternatives||[]).join(", ")}</td></tr>`;});h+=`</tbody></table>`;}
-      if(p.shadowingSentences?.length){h+=`<div class="sec">쉐도잉 문장</div>`;p.shadowingSentences.forEach(s=>{h+=`<div class="shi">${s}</div>`;});}
-      if(p.learningPoints)h+=`<div class="sec">학습 포인트</div><div class="lb">${p.learningPoints}</div>`;
-    });
-    if(result.memoryCards?.length){h+=`<div class="pt">전체 암기장</div><table><thead><tr><th>Expression</th><th>Meaning</th><th>유사 표현</th></tr></thead><tbody>`;result.memoryCards.forEach(m=>{h+=`<tr><td>${m.expression}</td><td>${m.meaning}</td><td style="color:#7A7A7A;font-size:11px">${(m.alternatives||[]).join(", ")}</td></tr>`;});h+=`</tbody></table>`;}
-    if(result.shadowingTraining?.length){h+=`<div class="pt">쉐도잉 트레이닝</div>`;result.shadowingTraining.forEach(pt=>{h+=`<div class="ph">${pt.partTitle||`Part ${pt.partNumber}`}</div>`;(pt.sentences||[]).forEach((s,i)=>{h+=`<div class="wr">${i+1}. ${s}</div>`;});});}
-    if(result.workbook){const wb=result.workbook;h+=`<div class="pt">워크북</div>`;if(wb.fillInBlank?.length){h+=`<div class="sec">빈칸 채우기</div>`;wb.fillInBlank.forEach((q,i)=>{h+=`<div class="wr">${i+1}. ${q.question}<br/><span class="ans">정답: ${q.answer}</span></div>`;});}if(wb.matching?.length){h+=`<div class="sec">표현 매칭</div><table><thead><tr><th>Expression</th><th>Meaning</th></tr></thead><tbody>`;wb.matching.forEach(m=>{h+=`<tr><td>${m.expression}</td><td>${m.meaning}</td></tr>`;});h+=`</tbody></table>`;}if(wb.translation?.length){h+=`<div class="sec">한→영 영작</div>`;wb.translation.forEach((t,i)=>{h+=`<div class="wr">${i+1}. ${t.korean}<br/><span class="ans">→ ${t.english}</span></div>`;});}if(wb.speakingQuestions?.length){h+=`<div class="sec">스스로 말해보기</div>`;wb.speakingQuestions.forEach((q,i)=>{h+=`<div class="qr">Q${i+1}. ${q}</div>`;});}}
-    h+=`</div></body></html>`;
-    const w=window.open("","_blank");w.document.write(h);w.document.close();w.onload=()=>{w.focus();w.print();};
-  };
-
   const TTSBtn=({text,id})=>(
     <button className={`tts-btn ${speaking===id?"playing":""}`} onClick={()=>speak(text,id)} title="듣기">
       {speaking===id?"⏹":"🔊"}
@@ -542,7 +614,7 @@ export default function App() {
     );
   };
 
-  if(screen==="loading") return(
+  if(screen==="loading")return(
     <><Head><title>Script2Study</title></Head><style jsx global>{G}</style>
     <div className="load-screen">
       <img src="/parkmyungsoo.png" className="load-pms" alt="박명수"/>
@@ -561,16 +633,13 @@ export default function App() {
     const allDone=answeredCount===allExprs.length&&allExprs.length>0;
 
     const renderContent=()=>{
-      if(tab==="sentences") return(
+      if(tab==="sentences")return(
         <>
           <div className="sec-eyebrow">Script2Study</div>
           <div className="sec-head">{result.title}</div>
-          {/* 카카오 공유 배너 */}
           <div className="share-banner">
             <span className="share-banner-text"><strong>이 교재 마음에 드세요?</strong><br/>친구에게 Script2Study 공유해보세요 😊</span>
-            <button className="btn-kakao" onClick={()=>shareKakao(result.title)}>
-              <span className="btn-kakao-icon">💬</span>카카오 공유
-            </button>
+            <button className="btn-kakao" onClick={()=>shareKakao(result.title)}>💬 카카오 공유</button>
           </div>
           {parts.length>1&&<div className="part-pills">{parts.map((p,i)=><button key={i} className={`part-pill ${partIdx===i?"on":""}`} onClick={()=>setPartIdx(i)}>{p.partTitle||`Part ${i+1}`}</button>)}</div>}
           <div className="card"><div className="sent-list">
@@ -586,7 +655,7 @@ export default function App() {
         </>
       );
 
-      if(tab==="expressions") return(
+      if(tab==="expressions")return(
         <><div className="sec-head">핵심 표현</div>
         {parts.length>1&&<div className="part-pills">{parts.map((p,i)=><button key={i} className={`part-pill ${partIdx===i?"on":""}`} onClick={()=>setPartIdx(i)}>{p.partTitle||`Part ${i+1}`}</button>)}</div>}
         <div className="legend-box"><div className="legend-item">⭐ <span>= AI가 선정한 이 파트 핵심 표현</span></div></div>
@@ -601,7 +670,7 @@ export default function App() {
         {(part.conversationPoints||[]).length>0&&<div className="card"><div className="card-label">💬 회화 포인트</div>{part.conversationPoints.map((c,i)=><div key={i} className="conv-item">{c}</div>)}</div>}</>
       );
 
-      if(tab==="memory") return(
+      if(tab==="memory")return(
         <><div className="sec-head">전체 암기장</div>
         <p style={{fontSize:13,color:"var(--ink3)",marginBottom:14}}>회화에서 바로 꺼낼 수 있는 표현만 모았어요 📌</p>
         <div className="mem-grid">{(result.memoryCards||[]).map((m,i)=>(
@@ -614,7 +683,7 @@ export default function App() {
         ))}</div></>
       );
 
-      if(tab==="shadowing") return(
+      if(tab==="shadowing")return(
         <>
           <div className="sec-head">쉐도잉 트레이닝</div>
           <p style={{fontSize:13,color:"var(--ink3)",marginBottom:12}}>소리 내서 따라 말해보세요. 🔁 버튼으로 구간 반복 재생도 돼요 🎙</p>
@@ -660,7 +729,7 @@ export default function App() {
         );
       }
 
-      if(tab==="workbook") return(
+      if(tab==="workbook")return(
         <>
           <div className="sec-head">워크북</div>
           <div className="wb-head">1. 빈칸 채우기</div>
@@ -706,8 +775,9 @@ export default function App() {
           <div className="dot dot-r"/><div className="dot dot-y"/><div className="dot dot-g"/>
           <div className="res-titlebar-name">Script2Study</div>
           <div className="res-header-btns">
-            <button className="btn-xs btn-xs-kakao" onClick={()=>shareKakao(result.title)}>💬 공유</button>
-            <button className="btn-xs btn-xs-blue" onClick={printPDF}>↓ PDF</button>
+            <button className="btn-xs btn-xs-kakao" onClick={()=>shareKakao(result.title)}>💬</button>
+            <button className="btn-xs btn-xs-pink" onClick={()=>downloadHTML(result,true)}>↓ 정답포함</button>
+            <button className="btn-xs btn-xs-blue" onClick={()=>downloadHTML(result,false)}>↓ 문제만</button>
             <button className="btn-xs btn-xs-ghost" onClick={goInput}>새 교재</button>
           </div>
         </div>
@@ -725,7 +795,7 @@ export default function App() {
   }
 
   const renderMainPanel=()=>{
-    if(inputView==="recent") return(
+    if(inputView==="recent")return(
       <><div className="main-eyebrow">Script2Study</div><div className="main-title">최근 교재</div>
       {recentList.length===0
         ?<div className="recent-empty"><div className="recent-empty-icon">📂</div>아직 저장된 교재가 없어요.<br/>교재를 생성하면 여기에 자동으로 저장돼요.</div>
