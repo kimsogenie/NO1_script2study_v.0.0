@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Head from "next/head";
 
-const VERSION = "v0.9.2";
+const VERSION = "v0.9.3";
 const COPYRIGHT = `© 2026 kimsogenie. All rights reserved.`;
 const MAX_RECENT = 5;
 
@@ -27,6 +27,7 @@ const QUOTES = [
   { ko: "세상은 넓고 할 일은 많지 않다. 할 일은 정해져 있다." },
 ];
 
+// ── 일반 TTS ──
 function useTTS() {
   const [speaking, setSpeaking] = useState(null);
   const synthRef = useRef(null);
@@ -48,19 +49,69 @@ function useTTS() {
       u.lang = "en-US"; u.rate = 0.88; u.pitch = 1; u.volume = 1;
       const voices = synth.getVoices();
       const en = voices.find(v => v.lang === "en-US" && /Samantha|Karen|Daniel/i.test(v.name))
-        || voices.find(v => v.lang === "en-US")
-        || voices.find(v => v.lang.startsWith("en"));
+        || voices.find(v => v.lang === "en-US") || voices.find(v => v.lang.startsWith("en"));
       if (en) u.voice = en;
       u.onstart = () => setSpeaking(id);
       u.onend = () => setSpeaking(null);
       u.onerror = () => setSpeaking(null);
       synth.speak(u);
     };
-    if (synth.getVoices().length === 0) setTimeout(trySpeak, 300);
-    else trySpeak();
+    if (synth.getVoices().length === 0) setTimeout(trySpeak, 300); else trySpeak();
   }, [speaking]);
   const stop = useCallback(() => { synthRef.current?.cancel(); setSpeaking(null); }, []);
   return { speak, stop, speaking };
+}
+
+// ── 반복 재생 TTS ──
+function useRepeatTTS() {
+  const [repeating, setRepeating] = useState(null); // { id, current, total }
+  const activeIdRef = useRef(null);
+
+  const getVoice = () => {
+    const synth = window.speechSynthesis;
+    const voices = synth.getVoices();
+    return voices.find(v => v.lang === "en-US" && /Samantha|Karen|Daniel/i.test(v.name))
+      || voices.find(v => v.lang === "en-US")
+      || voices.find(v => v.lang.startsWith("en"))
+      || null;
+  };
+
+  const stopRepeat = useCallback(() => {
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    activeIdRef.current = null;
+    setRepeating(null);
+  }, []);
+
+  const startRepeat = useCallback((text, id, total) => {
+    if (typeof window === "undefined") return;
+    const synth = window.speechSynthesis;
+    synth.cancel();
+
+    // 같은 버튼 다시 누르면 정지
+    if (activeIdRef.current === id) { stopRepeat(); return; }
+
+    activeIdRef.current = id;
+    let current = 0;
+
+    const playNext = () => {
+      if (activeIdRef.current !== id) return; // 중간에 취소됨
+      if (current >= total) { activeIdRef.current = null; setRepeating(null); return; }
+      current++;
+      setRepeating({ id, current, total });
+
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "en-US"; u.rate = 0.85; u.pitch = 1; u.volume = 1;
+      const v = getVoice(); if (v) u.voice = v;
+      u.onend = () => setTimeout(playNext, 700); // 문장 사이 0.7초 간격
+      u.onerror = () => { activeIdRef.current = null; setRepeating(null); };
+      synth.speak(u);
+    };
+
+    // 보이스 로드 대기
+    if (synth.getVoices().length === 0) setTimeout(playNext, 300); else playNext();
+  }, [stopRepeat]);
+
+  return { startRepeat, stopRepeat, repeating };
 }
 
 const G = `
@@ -162,10 +213,8 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .res-titlebar-name{flex:1;text-align:center;font-size:13px;font-weight:500;color:var(--ink3);margin-left:-36px;}
 .res-header-btns{display:flex;gap:6px;position:absolute;right:14px;}
 .btn-xs{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:opacity .15s;border:none;white-space:nowrap;}
-.btn-xs-blue{background:var(--blue);color:#fff;}
-.btn-xs-blue:hover{opacity:.85;}
-.btn-xs-ghost{background:rgba(0,0,0,.07);color:var(--ink2);}
-.btn-xs-ghost:hover{background:rgba(0,0,0,.11);}
+.btn-xs-blue{background:var(--blue);color:#fff;}.btn-xs-blue:hover{opacity:.85;}
+.btn-xs-ghost{background:rgba(0,0,0,.07);color:var(--ink2);}.btn-xs-ghost:hover{background:rgba(0,0,0,.11);}
 .mob-tabs{display:none;background:var(--sidebar);border-bottom:1px solid var(--sidebar-border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;}
 .mob-tabs::-webkit-scrollbar{display:none;}
 @media(max-width:700px){.mob-tabs{display:flex;}}
@@ -227,8 +276,7 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .wb-correct{border-color:var(--green)!important;background:var(--green-light)!important;}
 .wb-wrong{border-color:var(--red)!important;background:var(--red-light)!important;}
 .wb-result{font-size:12px;margin-top:4px;font-weight:600;}
-.wb-result.ok{color:var(--green);}
-.wb-result.no{color:var(--red);}
+.wb-result.ok{color:var(--green);} .wb-result.no{color:var(--red);}
 .wb-check-btn{padding:7px 14px;background:var(--pink-mid);color:#fff;border:none;border-radius:7px;font-size:13px;font-family:inherit;cursor:pointer;transition:opacity .15s;}
 .wb-check-btn:hover{opacity:.85;}
 .wb-rehide{padding:6px 12px;background:transparent;border:1.5px solid var(--sidebar-border);border-radius:7px;font-size:12px;font-family:inherit;cursor:pointer;color:var(--ink3);transition:all .15s;margin-left:8px;}
@@ -250,13 +298,50 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .q-badge{flex-shrink:0;font-size:11px;font-weight:700;color:var(--pink-mid);background:var(--pink-light);border-radius:5px;padding:3px 8px;margin-top:1px;}
 .q-txt{font-size:14px;line-height:1.65;color:var(--ink);}
 
-/* ── 퀴즈 탭 ── */
-.quiz-info{font-size:13px;color:var(--ink3);margin-bottom:16px;line-height:1.6;}
-.quiz-score{
-  display:flex;align-items:center;gap:10px;padding:12px 16px;
-  background:var(--panel);border-radius:10px;margin-bottom:16px;
-  font-size:14px;font-weight:600;color:var(--ink2);
+/* ── 쉐도잉 구간 반복 ── */
+.sh-repeat-bar{
+  display:flex;align-items:center;gap:8px;padding:10px 14px;
+  background:var(--panel);border-radius:10px;margin-bottom:14px;flex-wrap:wrap;
 }
+.sh-repeat-label{font-size:12px;font-weight:600;color:var(--ink3);}
+.sh-repeat-btns{display:flex;gap:5px;}
+.sh-repeat-opt{
+  padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;
+  font-family:inherit;border:1.5px solid var(--sidebar-border);
+  background:var(--win);color:var(--ink3);cursor:pointer;transition:all .15s;
+}
+.sh-repeat-opt.on{background:var(--pink-mid);border-color:var(--pink-mid);color:#fff;}
+.day-card{background:var(--win);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:9px;box-shadow:var(--shadow-sm);}
+.day-hd{font-size:13px;font-weight:700;color:var(--pink-mid);margin-bottom:11px;display:flex;align-items:center;gap:8px;}
+.day-hd::after{content:'';flex:1;height:1px;background:var(--border);}
+.day-row{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--sidebar-border);font-size:14px;color:var(--ink);align-items:center;line-height:1.6;}
+.day-row:last-child{border-bottom:none;padding-bottom:0;}
+.day-num{flex-shrink:0;font-size:11px;font-weight:700;color:var(--pink-mid);background:var(--pink-light);border-radius:5px;padding:2px 7px;min-width:24px;text-align:center;}
+.day-txt{flex:1;}
+.day-btns{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+
+/* 반복 재생 버튼 */
+.repeat-btn{
+  flex-shrink:0;width:36px;height:36px;border-radius:50%;border:none;
+  background:var(--panel);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:15px;transition:all .15s;
+  position:relative;
+}
+.repeat-btn:hover{background:var(--pink-light);}
+.repeat-btn.rp-active{background:var(--pink-mid);color:#fff;animation:ptts .8s ease-in-out infinite;}
+/* 진행 카운트 뱃지 */
+.rp-badge{
+  position:absolute;top:-4px;right:-4px;
+  font-size:9px;font-weight:800;
+  background:var(--ink);color:#fff;
+  border-radius:99px;padding:1px 4px;
+  min-width:16px;text-align:center;line-height:1.4;
+  pointer-events:none;
+}
+
+/* 퀴즈 */
+.quiz-info{font-size:13px;color:var(--ink3);margin-bottom:16px;line-height:1.6;}
+.quiz-score{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--panel);border-radius:10px;margin-bottom:16px;font-size:14px;font-weight:600;color:var(--ink2);}
 .quiz-score-num{font-size:22px;font-weight:800;color:var(--pink-mid);}
 .quiz-reset{margin-left:auto;padding:6px 12px;background:var(--win);border:1.5px solid var(--sidebar-border);border-radius:7px;font-size:12px;font-family:inherit;cursor:pointer;color:var(--ink3);transition:all .15s;}
 .quiz-reset:hover{border-color:var(--pink-mid);color:var(--pink-mid);}
@@ -276,8 +361,7 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .quiz-submit:hover{opacity:.85;}
 .quiz-submit:disabled{background:var(--ink4);cursor:not-allowed;opacity:1;}
 .quiz-feedback{margin-top:8px;font-size:13px;font-weight:600;}
-.quiz-feedback.ok{color:var(--green);}
-.quiz-feedback.no{color:var(--red);}
+.quiz-feedback.ok{color:var(--green);} .quiz-feedback.no{color:var(--red);}
 .quiz-answer{margin-top:6px;font-size:13px;color:var(--pink-mid);font-weight:600;}
 .quiz-all-done{text-align:center;padding:32px 20px;}
 .quiz-all-done-icon{font-size:48px;margin-bottom:12px;}
@@ -300,13 +384,6 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .mem-mean{font-size:13px;color:var(--ink2);margin-bottom:6px;}
 .mem-alts{display:flex;flex-wrap:wrap;gap:4px;}
 .mem-alt{font-size:11px;padding:2px 7px;background:var(--panel);border-radius:999px;color:var(--ink3);}
-.day-card{background:var(--win);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:9px;box-shadow:var(--shadow-sm);}
-.day-hd{font-size:13px;font-weight:700;color:var(--pink-mid);margin-bottom:11px;display:flex;align-items:center;gap:8px;}
-.day-hd::after{content:'';flex:1;height:1px;background:var(--border);}
-.day-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--sidebar-border);font-size:14px;color:var(--ink);align-items:center;line-height:1.6;}
-.day-row:last-child{border-bottom:none;padding-bottom:0;}
-.day-num{flex-shrink:0;font-size:11px;font-weight:700;color:var(--pink-mid);background:var(--pink-light);border-radius:5px;padding:2px 7px;min-width:24px;text-align:center;}
-.day-txt{flex:1;}
 .tagline-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;padding:10px 14px;background:var(--pink-light);border-radius:10px;}
 .tagline-text{font-size:13px;color:var(--pink-mid);font-weight:600;line-height:1.5;}
 .app-footer{text-align:center;padding:16px;font-size:11px;color:var(--ink4);letter-spacing:.02em;border-top:1px solid var(--border);margin-top:auto;}
@@ -319,21 +396,17 @@ const PRINT_CSS = `
   body{font-family:'Pretendard',-apple-system,'Apple SD Gothic Neo',sans-serif;color:#1A1A1A;background:#fff;padding:28px 32px;}
   .doc{max-width:680px;margin:0 auto;}
   .hdr{background:#D4849A;color:#fff;padding:18px 22px;border-radius:10px;margin-bottom:24px;}
-  .hdr h1{font-size:20px;font-weight:700;margin-bottom:3px;}
-  .hdr p{font-size:13px;opacity:.82;}
+  .hdr h1{font-size:20px;font-weight:700;margin-bottom:3px;} .hdr p{font-size:13px;opacity:.82;}
   .pt{font-size:16px;font-weight:700;color:#D4849A;border-bottom:2px solid #D4849A;padding-bottom:6px;margin:22px 0 12px;}
   .sec{font-size:10px;font-weight:700;color:#7A7A7A;text-transform:uppercase;letter-spacing:.07em;margin:14px 0 7px;}
-  .s{padding:8px 0;border-bottom:1px solid #E0E0E0;}
-  .se{font-size:14px;font-weight:600;margin-bottom:3px;}
-  .sk{font-size:13px;color:#3C3C3C;}
+  .s{padding:8px 0;border-bottom:1px solid #E0E0E0;} .se{font-size:14px;font-weight:600;margin-bottom:3px;} .sk{font-size:13px;color:#3C3C3C;}
   table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px;}
   th{background:#D4849A;color:#fff;padding:7px 11px;text-align:left;font-size:11px;font-weight:600;}
   td{padding:8px 11px;border-bottom:1px solid #E0E0E0;}
   .shi{padding:7px 11px;background:#FDF0F3;border-left:3px solid #D4849A;margin-bottom:5px;font-size:13px;border-radius:4px;}
   .lb{padding:10px 13px;background:#F7F7F7;border-radius:7px;font-size:13px;color:#3C3C3C;line-height:1.7;}
   .ph{font-size:13px;font-weight:700;color:#D4849A;margin:11px 0 5px;}
-  .wr{padding:7px 0;border-bottom:1px solid #E0E0E0;font-size:13px;}
-  .ans{color:#D4849A;font-weight:600;}
+  .wr{padding:7px 0;border-bottom:1px solid #E0E0E0;font-size:13px;} .ans{color:#D4849A;font-weight:600;}
   .qr{padding:8px 11px;background:#F7F7F7;border-radius:6px;margin-bottom:5px;font-size:13px;}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 `;
@@ -349,34 +422,22 @@ const TABS = [
 
 const SCRIPT_METHODS = [
   { icon:"📺", title:"Downsub", desc:"유튜브/넷플릭스 링크 붙여넣으면 자막을 텍스트로 추출해줘요. 무료예요.", link:"https://downsub.com", linkText:"downsub.com →" },
-  { icon:"🤖", title:"ChatGPT / Claude", desc:"영상 링크나 내용을 AI에 붙여넣고 \"영어 스크립트로 정리해줘\"라고 하면 돼요.", link:null, linkText:null,
-    subLinks:[{ label:"ChatGPT 열기 →", url:"https://chat.openai.com" },{ label:"Claude 열기 →", url:"https://claude.ai" }]
-  },
+  { icon:"🤖", title:"ChatGPT / Claude", desc:"영상 링크나 내용을 AI에 붙여넣고 \"영어 스크립트로 정리해줘\"라고 하면 돼요.", link:null, linkText:null, subLinks:[{label:"ChatGPT 열기 →",url:"https://chat.openai.com"},{label:"Claude 열기 →",url:"https://claude.ai"}] },
   { icon:"📋", title:"유튜브 자막 복사", desc:"유튜브 영상 → ··· → 스크립트 열기 → 전체 선택 복사. 자막 있는 영상이면 바로 돼요.", link:null, linkText:null },
 ];
 
+const REPEAT_OPTIONS = [1, 2, 3, 5];
+
 // ── localStorage 유틸 ──
 const LS_KEY = "s2s_recent";
-function loadRecent() {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; }
-}
+function loadRecent() { if (typeof window==="undefined") return []; try { return JSON.parse(localStorage.getItem(LS_KEY)||"[]"); } catch { return []; } }
 function saveRecent(titleStr, result) {
-  const item = { id: Date.now(), title: titleStr || result.title || "제목 없음", savedAt: new Date().toISOString(), result };
-  const prev = loadRecent();
-  const updated = [item, ...prev.filter(p => p.title !== item.title)].slice(0, MAX_RECENT);
-  try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch {}
-  return updated;
+  const item = { id:Date.now(), title:titleStr||result.title||"제목 없음", savedAt:new Date().toISOString(), result };
+  const updated = [item, ...loadRecent().filter(p=>p.title!==item.title)].slice(0,MAX_RECENT);
+  try { localStorage.setItem(LS_KEY,JSON.stringify(updated)); } catch {} return updated;
 }
-function deleteRecent(id) {
-  const updated = loadRecent().filter(p => p.id !== id);
-  try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch {}
-  return updated;
-}
-function formatDate(iso) {
-  const d = new Date(iso);
-  return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
-}
+function deleteRecent(id) { const u=loadRecent().filter(p=>p.id!==id); try{localStorage.setItem(LS_KEY,JSON.stringify(u));}catch{} return u; }
+function formatDate(iso) { const d=new Date(iso); return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
 
 export default function App() {
   const [screen, setScreen] = useState("input");
@@ -394,268 +455,234 @@ export default function App() {
   const [showMatch, setShowMatch] = useState(false);
   const [showHelper, setShowHelper] = useState(false);
   const [quoteIdx, setQuoteIdx] = useState(0);
-  // 퀴즈 상태
   const [quizInputs, setQuizInputs] = useState({});
   const [quizChecked, setQuizChecked] = useState({});
+  const [repeatCount, setRepeatCount] = useState(3); // 쉐도잉 반복 횟수
+
   const { speak, speaking } = useTTS();
+  const { startRepeat, stopRepeat, repeating } = useRepeatTTS();
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
-    }
-    setQuoteIdx(Math.floor(Math.random() * QUOTES.length));
+    if (typeof window!=="undefined") { if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{}); }
+    setQuoteIdx(Math.floor(Math.random()*QUOTES.length));
     setRecentList(loadRecent());
   }, []);
 
   useEffect(() => {
-    if (screen !== "loading") return;
-    const t = setInterval(() => setQuoteIdx(i => (i + 1) % QUOTES.length), 4000);
-    return () => clearInterval(t);
+    if (screen!=="loading") return;
+    const t = setInterval(()=>setQuoteIdx(i=>(i+1)%QUOTES.length), 4000);
+    return ()=>clearInterval(t);
   }, [screen]);
 
-  const reveal = (k) => setReveals(p => ({...p,[k]:true}));
-  const unrevel = (k) => setReveals(p => ({...p,[k]:false}));
-  const setWbInput = (k, v) => setWbInputs(p => ({...p,[k]:v}));
-  const checkWb = (k, answer) => setWbChecked(p => ({...p,[k]: (wbInputs[k]||"").trim().toLowerCase() === answer.toLowerCase() ? "ok" : "no"}));
-
-  // 퀴즈 핸들러
-  const setQuizInput = (k, v) => setQuizInputs(p => ({...p,[k]:v}));
-  const checkQuiz = (k, answer) => {
-    const val = (quizInputs[k]||"").trim().toLowerCase();
-    setQuizChecked(p => ({...p,[k]: val === answer.toLowerCase() ? "ok" : "no"}));
-  };
-  const resetQuiz = () => { setQuizInputs({}); setQuizChecked({}); };
+  const reveal = (k)=>setReveals(p=>({...p,[k]:true}));
+  const unrevel = (k)=>setReveals(p=>({...p,[k]:false}));
+  const setWbInput = (k,v)=>setWbInputs(p=>({...p,[k]:v}));
+  const checkWb = (k,answer)=>setWbChecked(p=>({...p,[k]:(wbInputs[k]||"").trim().toLowerCase()===answer.toLowerCase()?"ok":"no"}));
+  const setQuizInput = (k,v)=>setQuizInputs(p=>({...p,[k]:v}));
+  const checkQuiz = (k,answer)=>setQuizChecked(p=>({...p,[k]:(quizInputs[k]||"").trim().toLowerCase()===answer.toLowerCase()?"ok":"no"}));
+  const resetQuiz = ()=>{setQuizInputs({});setQuizChecked({});};
 
   const generate = async () => {
     if (!script.trim()) { setError("영어 스크립트를 먼저 붙여넣어 주세요."); return; }
     setScreen("loading"); setError("");
     setReveals({}); setWbInputs({}); setWbChecked({}); setShowMatch(false);
     setQuizInputs({}); setQuizChecked({});
+    stopRepeat();
     try {
-      const res = await fetch("/api/generate", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({script, title}) });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error||"오류"); }
+      const res = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({script,title})});
+      if (!res.ok) { const d=await res.json(); throw new Error(d.error||"오류"); }
       const data = await res.json();
-      const updated = saveRecent(title, data);
-      setRecentList(updated);
+      setRecentList(saveRecent(title,data));
       setResult(data); setPartIdx(0); setTab("sentences"); setScreen("result");
     } catch(e) { setError(e.message||"오류가 발생했어요."); setScreen("input"); }
   };
 
   const openRecent = (item) => {
-    setResult(item.result); setTitle(item.title);
-    setPartIdx(0); setTab("sentences");
+    setResult(item.result); setTitle(item.title); setPartIdx(0); setTab("sentences");
     setReveals({}); setWbInputs({}); setWbChecked({}); setShowMatch(false);
-    setQuizInputs({}); setQuizChecked({});
-    setScreen("result");
+    setQuizInputs({}); setQuizChecked({}); stopRepeat(); setScreen("result");
   };
-  const removeRecent = (e, id) => { e.stopPropagation(); setRecentList(deleteRecent(id)); };
-  const goInput = () => { setScreen("input"); setResult(null); setInputView("new"); };
+  const removeRecent = (e,id)=>{ e.stopPropagation(); setRecentList(deleteRecent(id)); };
+  const goInput = ()=>{ stopRepeat(); setScreen("input"); setResult(null); setInputView("new"); };
 
   const printPDF = () => {
     if (!result) return;
-    let h = `<html><head><meta charset="UTF-8"/><link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet"/><style>${PRINT_CSS}</style></head><body><div class="doc">`;
-    h += `<div class="hdr"><h1>Script2Study</h1><p>${result.title||""}</p></div>`;
-    (result.parts||[]).forEach(p => {
-      h += `<div class="pt">${p.partTitle||`Part ${p.partNumber}`}</div><div class="sec">문장별 해석</div>`;
-      (p.sentences||[]).forEach(s => { h += `<div class="s"><div class="se">${s.en}</div><div class="sk">${s.ko}</div></div>`; });
-      if (p.keyExpressions?.length) {
-        h += `<div class="sec">핵심 표현</div><table><thead><tr><th>Expression</th><th>Meaning</th><th>Example</th><th>유사 표현</th></tr></thead><tbody>`;
-        p.keyExpressions.forEach(e => { h += `<tr><td>${e.star?"⭐ ":""}${e.expression}</td><td>${e.meaning}</td><td>${e.example}</td><td style="color:#7A7A7A;font-size:11px">${(e.alternatives||[]).join(", ")}</td></tr>`; });
-        h += `</tbody></table>`;
-      }
-      if (p.shadowingSentences?.length) { h += `<div class="sec">쉐도잉 문장</div>`; p.shadowingSentences.forEach(s => { h += `<div class="shi">${s}</div>`; }); }
-      if (p.learningPoints) h += `<div class="sec">학습 포인트</div><div class="lb">${p.learningPoints}</div>`;
+    let h=`<html><head><meta charset="UTF-8"/><link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet"/><style>${PRINT_CSS}</style></head><body><div class="doc">`;
+    h+=`<div class="hdr"><h1>Script2Study</h1><p>${result.title||""}</p></div>`;
+    (result.parts||[]).forEach(p=>{
+      h+=`<div class="pt">${p.partTitle||`Part ${p.partNumber}`}</div><div class="sec">문장별 해석</div>`;
+      (p.sentences||[]).forEach(s=>{h+=`<div class="s"><div class="se">${s.en}</div><div class="sk">${s.ko}</div></div>`;});
+      if(p.keyExpressions?.length){h+=`<div class="sec">핵심 표현</div><table><thead><tr><th>Expression</th><th>Meaning</th><th>Example</th><th>유사 표현</th></tr></thead><tbody>`;p.keyExpressions.forEach(e=>{h+=`<tr><td>${e.star?"⭐ ":""}${e.expression}</td><td>${e.meaning}</td><td>${e.example}</td><td style="color:#7A7A7A;font-size:11px">${(e.alternatives||[]).join(", ")}</td></tr>`;});h+=`</tbody></table>`;}
+      if(p.shadowingSentences?.length){h+=`<div class="sec">쉐도잉 문장</div>`;p.shadowingSentences.forEach(s=>{h+=`<div class="shi">${s}</div>`;});}
+      if(p.learningPoints)h+=`<div class="sec">학습 포인트</div><div class="lb">${p.learningPoints}</div>`;
     });
-    if (result.memoryCards?.length) {
-      h += `<div class="pt">전체 암기장</div><table><thead><tr><th>Expression</th><th>Meaning</th><th>유사 표현</th></tr></thead><tbody>`;
-      result.memoryCards.forEach(m => { h += `<tr><td>${m.expression}</td><td>${m.meaning}</td><td style="color:#7A7A7A;font-size:11px">${(m.alternatives||[]).join(", ")}</td></tr>`; });
-      h += `</tbody></table>`;
-    }
-    if (result.shadowingTraining?.length) {
-      h += `<div class="pt">쉐도잉 트레이닝</div>`;
-      result.shadowingTraining.forEach(part => { h += `<div class="ph">${part.partTitle||`Part ${part.partNumber}`}</div>`; (part.sentences||[]).forEach((s,i) => { h += `<div class="wr">${i+1}. ${s}</div>`; }); });
-    }
-    if (result.workbook) {
-      const wb = result.workbook; h += `<div class="pt">워크북</div>`;
-      if (wb.fillInBlank?.length) { h += `<div class="sec">빈칸 채우기</div>`; wb.fillInBlank.forEach((q,i) => { h += `<div class="wr">${i+1}. ${q.question}<br/><span class="ans">정답: ${q.answer}</span></div>`; }); }
-      if (wb.matching?.length) { h += `<div class="sec">표현 매칭</div><table><thead><tr><th>Expression</th><th>Meaning</th></tr></thead><tbody>`; wb.matching.forEach(m => { h += `<tr><td>${m.expression}</td><td>${m.meaning}</td></tr>`; }); h += `</tbody></table>`; }
-      if (wb.translation?.length) { h += `<div class="sec">한→영 영작</div>`; wb.translation.forEach((t,i) => { h += `<div class="wr">${i+1}. ${t.korean}<br/><span class="ans">→ ${t.english}</span></div>`; }); }
-      if (wb.speakingQuestions?.length) { h += `<div class="sec">스스로 말해보기</div>`; wb.speakingQuestions.forEach((q,i) => { h += `<div class="qr">Q${i+1}. ${q}</div>`; }); }
-    }
-    h += `</div></body></html>`;
-    const w = window.open("","_blank"); w.document.write(h); w.document.close(); w.onload = () => { w.focus(); w.print(); };
+    if(result.memoryCards?.length){h+=`<div class="pt">전체 암기장</div><table><thead><tr><th>Expression</th><th>Meaning</th><th>유사 표현</th></tr></thead><tbody>`;result.memoryCards.forEach(m=>{h+=`<tr><td>${m.expression}</td><td>${m.meaning}</td><td style="color:#7A7A7A;font-size:11px">${(m.alternatives||[]).join(", ")}</td></tr>`;});h+=`</tbody></table>`;}
+    if(result.shadowingTraining?.length){h+=`<div class="pt">쉐도잉 트레이닝</div>`;result.shadowingTraining.forEach(part=>{h+=`<div class="ph">${part.partTitle||`Part ${part.partNumber}`}</div>`;(part.sentences||[]).forEach((s,i)=>{h+=`<div class="wr">${i+1}. ${s}</div>`;});});}
+    if(result.workbook){const wb=result.workbook;h+=`<div class="pt">워크북</div>`;if(wb.fillInBlank?.length){h+=`<div class="sec">빈칸 채우기</div>`;wb.fillInBlank.forEach((q,i)=>{h+=`<div class="wr">${i+1}. ${q.question}<br/><span class="ans">정답: ${q.answer}</span></div>`;});}if(wb.matching?.length){h+=`<div class="sec">표현 매칭</div><table><thead><tr><th>Expression</th><th>Meaning</th></tr></thead><tbody>`;wb.matching.forEach(m=>{h+=`<tr><td>${m.expression}</td><td>${m.meaning}</td></tr>`;});h+=`</tbody></table>`;}if(wb.translation?.length){h+=`<div class="sec">한→영 영작</div>`;wb.translation.forEach((t,i)=>{h+=`<div class="wr">${i+1}. ${t.korean}<br/><span class="ans">→ ${t.english}</span></div>`;});}if(wb.speakingQuestions?.length){h+=`<div class="sec">스스로 말해보기</div>`;wb.speakingQuestions.forEach((q,i)=>{h+=`<div class="qr">Q${i+1}. ${q}</div>`;});}}
+    h+=`</div></body></html>`;
+    const w=window.open("","_blank");w.document.write(h);w.document.close();w.onload=()=>{w.focus();w.print();};
   };
 
-  const TTSBtn = ({text, id}) => (
-    <button className={`tts-btn ${speaking===id?"playing":""}`} onClick={() => speak(text, id)} title="듣기">
-      {speaking===id ? "⏹" : "🔊"}
+  const TTSBtn = ({text,id})=>(
+    <button className={`tts-btn ${speaking===id?"playing":""}`} onClick={()=>speak(text,id)} title="듣기">
+      {speaking===id?"⏹":"🔊"}
     </button>
   );
 
+  // 반복 재생 버튼
+  const RepeatBtn = ({text,id})=>{
+    const isActive = repeating?.id===id;
+    return (
+      <button
+        className={`repeat-btn ${isActive?"rp-active":""}`}
+        onClick={()=>startRepeat(text,id,repeatCount)}
+        title={`${repeatCount}회 반복 재생`}
+      >
+        🔁
+        {isActive && <span className="rp-badge">{repeating.current}/{repeating.total}</span>}
+      </button>
+    );
+  };
+
   // ── LOADING
-  if (screen === "loading") return (
-    <>
-      <Head><title>Script2Study</title></Head>
-      <style jsx global>{G}</style>
-      <div className="load-screen">
-        <img src="/parkmyungsoo.png" className="load-pms" alt="박명수" />
-        <div className="load-title">교재 만드는 중...</div>
-        <div className="load-bar"><div className="load-bar-fill"/></div>
-        <div className="load-quote">
-          <div className="load-quote-ko">"{QUOTES[quoteIdx].ko}"</div>
-          <div className="load-quote-author">— 박명수 어록</div>
-        </div>
-      </div>
-    </>
+  if (screen==="loading") return (
+    <><Head><title>Script2Study</title></Head><style jsx global>{G}</style>
+    <div className="load-screen">
+      <img src="/parkmyungsoo.png" className="load-pms" alt="박명수"/>
+      <div className="load-title">교재 만드는 중...</div>
+      <div className="load-bar"><div className="load-bar-fill"/></div>
+      <div className="load-quote"><div className="load-quote-ko">"{QUOTES[quoteIdx].ko}"</div><div className="load-quote-author">— 박명수 어록</div></div>
+    </div></>
   );
 
   // ── RESULT
-  if (screen === "result" && result) {
-    const parts = result.parts || [];
-    const part = parts[partIdx] || {};
+  if (screen==="result" && result) {
+    const parts = result.parts||[];
+    const part = parts[partIdx]||{};
+    const allExprs = parts.flatMap((p,pi)=>(p.keyExpressions||[]).map((e,ei)=>({...e,_pi:pi,_ei:ei,_key:`qz-${pi}-${ei}`})));
+    const correctCount = allExprs.filter(e=>quizChecked[e._key]==="ok").length;
+    const answeredCount = allExprs.filter(e=>quizChecked[e._key]!==undefined).length;
+    const allDone = answeredCount===allExprs.length&&allExprs.length>0;
 
-    // 퀴즈용: 전체 파트 표현 flat하게 모으기
-    const allExprs = parts.flatMap((p, pi) =>
-      (p.keyExpressions || []).map((e, ei) => ({ ...e, _pi: pi, _ei: ei, _key: `qz-${pi}-${ei}` }))
-    );
-    const answeredCount = allExprs.filter(e => quizChecked[e._key] !== undefined).length;
-    const correctCount  = allExprs.filter(e => quizChecked[e._key] === "ok").length;
-    const allDone = answeredCount === allExprs.length && allExprs.length > 0;
-
-    const renderContent = () => {
-      if (tab === "sentences") return (
-        <>
-          <div className="sec-eyebrow">Script2Study</div>
-          <div className="sec-head">{result.title}</div>
-          {parts.length > 1 && <div className="part-pills">{parts.map((p,i) => <button key={i} className={`part-pill ${partIdx===i?"on":""}`} onClick={()=>setPartIdx(i)}>{p.partTitle||`Part ${i+1}`}</button>)}</div>}
-          <div className="card">
-            <div className="sent-list">
-              {(part.sentences||[]).map((s,i) => (
-                <div key={i} className="sent-row">
-                  <div className="sent-text"><div className="sent-en">{s.en}</div><div className="sent-ko">{s.ko}</div></div>
-                  <TTSBtn text={s.en} id={`s-${partIdx}-${i}`} />
-                </div>
-              ))}
+    const renderContent = ()=>{
+      if (tab==="sentences") return (
+        <><div className="sec-eyebrow">Script2Study</div><div className="sec-head">{result.title}</div>
+        {parts.length>1&&<div className="part-pills">{parts.map((p,i)=><button key={i} className={`part-pill ${partIdx===i?"on":""}`} onClick={()=>setPartIdx(i)}>{p.partTitle||`Part ${i+1}`}</button>)}</div>}
+        <div className="card"><div className="sent-list">
+          {(part.sentences||[]).map((s,i)=>(
+            <div key={i} className="sent-row">
+              <div className="sent-text"><div className="sent-en">{s.en}</div><div className="sent-ko">{s.ko}</div></div>
+              <TTSBtn text={s.en} id={`s-${partIdx}-${i}`}/>
             </div>
-          </div>
-          {part.shadowingSentences?.length > 0 && <div className="card"><div className="card-label">🎙 이 파트 쉐도잉</div>{part.shadowingSentences.map((s,i) => <div key={i} className="sh-item"><span className="sh-text">{s}</span><TTSBtn text={s} id={`ss-${partIdx}-${i}`} /></div>)}</div>}
-          {part.learningPoints && <div className="card"><div className="card-label">📌 학습 포인트</div><div className="learn-box">{part.learningPoints}</div></div>}
-        </>
+          ))}
+        </div></div>
+        {part.shadowingSentences?.length>0&&<div className="card"><div className="card-label">🎙 이 파트 쉐도잉</div>{part.shadowingSentences.map((s,i)=><div key={i} className="sh-item"><span className="sh-text">{s}</span><TTSBtn text={s} id={`ss-${partIdx}-${i}`}/></div>)}</div>}
+        {part.learningPoints&&<div className="card"><div className="card-label">📌 학습 포인트</div><div className="learn-box">{part.learningPoints}</div></div>}</>
       );
 
-      if (tab === "expressions") return (
-        <>
-          <div className="sec-head">핵심 표현</div>
-          {parts.length > 1 && <div className="part-pills">{parts.map((p,i) => <button key={i} className={`part-pill ${partIdx===i?"on":""}`} onClick={()=>setPartIdx(i)}>{p.partTitle||`Part ${i+1}`}</button>)}</div>}
-          <div className="legend-box"><div className="legend-item">⭐ <span>= AI가 선정한 이 파트 핵심 표현</span></div></div>
-          <div className="card">
-            {(part.keyExpressions||[]).map((e,i) => (
-              <div key={i} className="expr-row">
-                <div className="expr-header"><div className="expr-top"><span className="expr-word">{e.expression}</span>{e.star && <span style={{fontSize:16}}>⭐</span>}</div><TTSBtn text={e.expression} id={`e-${partIdx}-${i}`} /></div>
-                <div className="expr-mean">{e.meaning}</div>
-                <div className="expr-ex">예) {e.example}</div>
-                {e.alternatives?.length > 0 && <div className="alt-wrap"><span className="alt-label">유사표현</span>{e.alternatives.map((a,j) => <span key={j} className="alt-chip" onClick={()=>speak(a,`a-${i}-${j}`)}>{a} 🔊</span>)}</div>}
-                {e.examTags?.length > 0 && <div className="exam-tags">{e.examTags.map((tag,j) => <span key={j} className={`exam-tag exam-tag-${tag}`}>{tag} 빈출</span>)}</div>}
-              </div>
-            ))}
+      if (tab==="expressions") return (
+        <><div className="sec-head">핵심 표현</div>
+        {parts.length>1&&<div className="part-pills">{parts.map((p,i)=><button key={i} className={`part-pill ${partIdx===i?"on":""}`} onClick={()=>setPartIdx(i)}>{p.partTitle||`Part ${i+1}`}</button>)}</div>}
+        <div className="legend-box"><div className="legend-item">⭐ <span>= AI가 선정한 이 파트 핵심 표현</span></div></div>
+        <div className="card">{(part.keyExpressions||[]).map((e,i)=>(
+          <div key={i} className="expr-row">
+            <div className="expr-header"><div className="expr-top"><span className="expr-word">{e.expression}</span>{e.star&&<span style={{fontSize:16}}>⭐</span>}</div><TTSBtn text={e.expression} id={`e-${partIdx}-${i}`}/></div>
+            <div className="expr-mean">{e.meaning}</div><div className="expr-ex">예) {e.example}</div>
+            {e.alternatives?.length>0&&<div className="alt-wrap"><span className="alt-label">유사표현</span>{e.alternatives.map((a,j)=><span key={j} className="alt-chip" onClick={()=>speak(a,`a-${i}-${j}`)}>{a} 🔊</span>)}</div>}
+            {e.examTags?.length>0&&<div className="exam-tags">{e.examTags.map((tag,j)=><span key={j} className={`exam-tag exam-tag-${tag}`}>{tag} 빈출</span>)}</div>}
           </div>
-          {(part.conversationPoints||[]).length > 0 && <div className="card"><div className="card-label">💬 회화 포인트</div>{part.conversationPoints.map((c,i) => <div key={i} className="conv-item">{c}</div>)}</div>}
-        </>
+        ))}</div>
+        {(part.conversationPoints||[]).length>0&&<div className="card"><div className="card-label">💬 회화 포인트</div>{part.conversationPoints.map((c,i)=><div key={i} className="conv-item">{c}</div>)}</div>}</>
       );
 
-      if (tab === "memory") return (
-        <>
-          <div className="sec-head">전체 암기장</div>
-          <p style={{fontSize:13,color:"var(--ink3)",marginBottom:14}}>회화에서 바로 꺼낼 수 있는 표현만 모았어요 📌</p>
-          <div className="mem-grid">
-            {(result.memoryCards||[]).map((m,i) => (
-              <div key={i} className="mem-card">
-                <div className="mem-header"><div className="mem-expr">{m.expression}</div><TTSBtn text={m.expression} id={`m-${i}`} /></div>
-                <div className="mem-mean">{m.meaning}</div>
-                {m.alternatives?.length > 0 && <div className="mem-alts">{m.alternatives.map((a,j) => <span key={j} className="mem-alt">{a}</span>)}</div>}
-                {m.examTags?.length > 0 && <div className="exam-tags" style={{marginTop:6}}>{m.examTags.map((tag,j) => <span key={j} className={`exam-tag exam-tag-${tag}`}>{tag} 빈출</span>)}</div>}
-              </div>
-            ))}
+      if (tab==="memory") return (
+        <><div className="sec-head">전체 암기장</div>
+        <p style={{fontSize:13,color:"var(--ink3)",marginBottom:14}}>회화에서 바로 꺼낼 수 있는 표현만 모았어요 📌</p>
+        <div className="mem-grid">{(result.memoryCards||[]).map((m,i)=>(
+          <div key={i} className="mem-card">
+            <div className="mem-header"><div className="mem-expr">{m.expression}</div><TTSBtn text={m.expression} id={`m-${i}`}/></div>
+            <div className="mem-mean">{m.meaning}</div>
+            {m.alternatives?.length>0&&<div className="mem-alts">{m.alternatives.map((a,j)=><span key={j} className="mem-alt">{a}</span>)}</div>}
+            {m.examTags?.length>0&&<div className="exam-tags" style={{marginTop:6}}>{m.examTags.map((tag,j)=><span key={j} className={`exam-tag exam-tag-${tag}`}>{tag} 빈출</span>)}</div>}
           </div>
-        </>
+        ))}</div></>
       );
 
-      if (tab === "shadowing") return (
+      // ── 쉐도잉 탭 (반복 재생 추가) ──
+      if (tab==="shadowing") return (
         <>
           <div className="sec-head">쉐도잉 트레이닝</div>
-          <p style={{fontSize:13,color:"var(--ink3)",marginBottom:14}}>파트별로 소리 내서 따라 말해보세요 🎙</p>
-          {(result.shadowingTraining||[]).map((part,i) => (
+          <p style={{fontSize:13,color:"var(--ink3)",marginBottom:12}}>소리 내서 따라 말해보세요. 🔁 버튼으로 구간 반복 재생도 돼요 🎙</p>
+
+          {/* 반복 횟수 선택 바 */}
+          <div className="sh-repeat-bar">
+            <span className="sh-repeat-label">🔁 반복 횟수</span>
+            <div className="sh-repeat-btns">
+              {REPEAT_OPTIONS.map(n=>(
+                <button key={n} className={`sh-repeat-opt ${repeatCount===n?"on":""}`} onClick={()=>{ stopRepeat(); setRepeatCount(n); }}>
+                  {n}회
+                </button>
+              ))}
+            </div>
+            {repeating && (
+              <button onClick={stopRepeat} style={{marginLeft:"auto",padding:"4px 10px",fontSize:12,fontWeight:600,fontFamily:"inherit",background:"var(--red-light)",border:"none",borderRadius:6,color:"var(--red)",cursor:"pointer"}}>
+                ⏹ 정지
+              </button>
+            )}
+          </div>
+
+          {(result.shadowingTraining||[]).map((pt,i)=>(
             <div key={i} className="day-card">
-              <div className="day-hd">{part.partTitle || `Part ${part.partNumber}`}</div>
-              {(part.sentences||[]).map((s,j) => <div key={j} className="day-row"><span className="day-num">{j+1}</span><span className="day-txt">{s}</span><TTSBtn text={s} id={`d-${i}-${j}`} /></div>)}
+              <div className="day-hd">{pt.partTitle||`Part ${pt.partNumber}`}</div>
+              {(pt.sentences||[]).map((s,j)=>{
+                const id=`d-${i}-${j}`;
+                return (
+                  <div key={j} className="day-row">
+                    <span className="day-num">{j+1}</span>
+                    <span className="day-txt">{s}</span>
+                    <div className="day-btns">
+                      <TTSBtn text={s} id={`tts-${id}`}/>
+                      <RepeatBtn text={s} id={id}/>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ))}
         </>
       );
 
-      // ── 퀴즈 탭 ──
-      if (tab === "quiz") {
-        if (allExprs.length === 0) return (
-          <><div className="sec-head">표현 퀴즈</div><div className="recent-empty"><div className="recent-empty-icon">💡</div>퀴즈를 만들 표현이 없어요.<br/>표현 탭을 먼저 확인해보세요.</div></>
-        );
+      if (tab==="quiz") {
+        if (allExprs.length===0) return (<><div className="sec-head">표현 퀴즈</div><div className="recent-empty"><div className="recent-empty-icon">💡</div>퀴즈를 만들 표현이 없어요.</div></>);
         return (
           <>
             <div className="sec-head">표현 퀴즈</div>
             <p className="quiz-info">뜻과 예문을 보고 영어 표현을 맞혀보세요. 전체 파트 표현이 모두 나와요 ✏️</p>
-
-            {/* 점수 */}
             <div className="quiz-score">
               <span className="quiz-score-num">{correctCount}</span>
               <span>/ {allExprs.length} 정답</span>
               <button className="quiz-reset" onClick={resetQuiz}>다시 풀기</button>
             </div>
-
-            {/* 완료 메시지 */}
-            {allDone && (
+            {allDone&&(
               <div className="quiz-all-done">
-                <div className="quiz-all-done-icon">{correctCount === allExprs.length ? "🎉" : "💪"}</div>
-                <div className="quiz-all-done-title">
-                  {correctCount === allExprs.length ? "완벽해요!" : `${correctCount}/${allExprs.length} 맞혔어요`}
-                </div>
-                <div className="quiz-all-done-sub">
-                  {correctCount === allExprs.length ? "모든 표현을 맞혔어요. 대단해요!" : "틀린 표현은 다시 풀어보세요."}
-                </div>
+                <div className="quiz-all-done-icon">{correctCount===allExprs.length?"🎉":"💪"}</div>
+                <div className="quiz-all-done-title">{correctCount===allExprs.length?"완벽해요!": `${correctCount}/${allExprs.length} 맞혔어요`}</div>
+                <div className="quiz-all-done-sub">{correctCount===allExprs.length?"모든 표현을 맞혔어요. 대단해요!":"틀린 표현은 다시 풀어보세요."}</div>
                 <button className="quiz-retry-btn" onClick={resetQuiz}>다시 풀기</button>
               </div>
             )}
-
-            {/* 퀴즈 카드 */}
-            {allExprs.map((e) => {
-              const k = e._key;
-              const checked = quizChecked[k];
+            {allExprs.map((e)=>{
+              const k=e._key; const checked=quizChecked[k];
               return (
-                <div key={k} className={`quiz-card ${checked === "ok" ? "qz-ok" : checked === "no" ? "qz-no" : ""}`}>
-                  <div className="quiz-num">Q{allExprs.indexOf(e) + 1} · Part {e._pi + 1}</div>
+                <div key={k} className={`quiz-card ${checked==="ok"?"qz-ok":checked==="no"?"qz-no":""}`}>
+                  <div className="quiz-num">Q{allExprs.indexOf(e)+1} · Part {e._pi+1}</div>
                   <div className="quiz-hint-meaning">{e.meaning}</div>
                   <div className="quiz-hint-ex">예) {e.example}</div>
                   <div className="quiz-input-row">
-                    <input
-                      className={`quiz-input ${checked === "ok" ? "qz-ok" : checked === "no" ? "qz-no" : ""}`}
-                      placeholder="영어 표현을 입력하세요..."
-                      value={quizInputs[k] || ""}
-                      onChange={ev => setQuizInput(k, ev.target.value)}
-                      onKeyDown={ev => ev.key === "Enter" && !checked && checkQuiz(k, e.expression)}
-                      disabled={!!checked}
-                    />
-                    <button
-                      className="quiz-submit"
-                      onClick={() => checkQuiz(k, e.expression)}
-                      disabled={!!checked || !(quizInputs[k]||"").trim()}
-                    >확인</button>
+                    <input className={`quiz-input ${checked==="ok"?"qz-ok":checked==="no"?"qz-no":""}`} placeholder="영어 표현을 입력하세요..." value={quizInputs[k]||""} onChange={ev=>setQuizInput(k,ev.target.value)} onKeyDown={ev=>ev.key==="Enter"&&!checked&&checkQuiz(k,e.expression)} disabled={!!checked}/>
+                    <button className="quiz-submit" onClick={()=>checkQuiz(k,e.expression)} disabled={!!checked||!(quizInputs[k]||"").trim()}>확인</button>
                   </div>
-                  {checked && (
-                    <>
-                      <div className={`quiz-feedback ${checked}`}>
-                        {checked === "ok" ? "✅ 정답이에요!" : "❌ 오답이에요."}
-                      </div>
-                      {checked === "no" && <div className="quiz-answer">정답: {e.expression}</div>}
-                    </>
-                  )}
+                  {checked&&(<><div className={`quiz-feedback ${checked}`}>{checked==="ok"?"✅ 정답이에요!":"❌ 오답이에요."}</div>{checked==="no"&&<div className="quiz-answer">정답: {e.expression}</div>}</>)}
                 </div>
               );
             })}
@@ -663,169 +690,128 @@ export default function App() {
         );
       }
 
-      if (tab === "workbook") return (
+      if (tab==="workbook") return (
         <>
           <div className="sec-head">워크북</div>
           <div className="wb-head">1. 빈칸 채우기</div>
-          {(result.workbook?.fillInBlank||[]).map((q,i) => (
+          {(result.workbook?.fillInBlank||[]).map((q,i)=>(
             <div key={i} className="wb-card">
               <div className="wb-q">{i+1}. {q.question}</div>
-              <input className={`wb-input ${wbChecked[`f${i}`]==="ok"?"wb-correct":wbChecked[`f${i}`]==="no"?"wb-wrong":""}`} placeholder="여기에 답 입력..." value={wbInputs[`f${i}`]||""} onChange={e=>setWbInput(`f${i}`,e.target.value)} onKeyDown={e=>e.key==="Enter"&&checkWb(`f${i}`,q.answer)} />
+              <input className={`wb-input ${wbChecked[`f${i}`]==="ok"?"wb-correct":wbChecked[`f${i}`]==="no"?"wb-wrong":""}`} placeholder="여기에 답 입력..." value={wbInputs[`f${i}`]||""} onChange={e=>setWbInput(`f${i}`,e.target.value)} onKeyDown={e=>e.key==="Enter"&&checkWb(`f${i}`,q.answer)}/>
               <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 <button className="wb-check-btn" onClick={()=>checkWb(`f${i}`,q.answer)}>확인</button>
-                {reveals[`f${i}`] ? <button className="wb-rehide" onClick={()=>unrevel(`f${i}`)}>정답 숨기기</button> : <button className="btn-rev" onClick={()=>reveal(`f${i}`)}>정답 보기</button>}
+                {reveals[`f${i}`]?<button className="wb-rehide" onClick={()=>unrevel(`f${i}`)}>정답 숨기기</button>:<button className="btn-rev" onClick={()=>reveal(`f${i}`)}>정답 보기</button>}
               </div>
-              {wbChecked[`f${i}`] && <div className={`wb-result ${wbChecked[`f${i}`]}`}>{wbChecked[`f${i}`]==="ok" ? "✅ 정답이에요!" : `❌ 오답이에요. 정답: ${q.answer}`}</div>}
-              {reveals[`f${i}`] && <div className="wb-ans" style={{marginTop:8}}>정답: {q.answer}</div>}
+              {wbChecked[`f${i}`]&&<div className={`wb-result ${wbChecked[`f${i}`]}`}>{wbChecked[`f${i}`]==="ok"?"✅ 정답이에요!":`❌ 오답이에요. 정답: ${q.answer}`}</div>}
+              {reveals[`f${i}`]&&<div className="wb-ans" style={{marginTop:8}}>정답: {q.answer}</div>}
             </div>
           ))}
           <div className="wb-head">2. 표현 매칭</div>
           <div className="wb-card">
-            <table className="mtbl">
-              <thead><tr><th>표현</th><th>뜻</th></tr></thead>
-              <tbody>{(result.workbook?.matching||[]).map((m,i) => <tr key={i}><td>{m.expression}</td><td style={{color:showMatch?"inherit":"transparent",background:showMatch?"transparent":"var(--sidebar-border)",borderRadius:4,transition:"all .2s",userSelect:showMatch?"auto":"none"}}>{m.meaning}</td></tr>)}</tbody>
-            </table>
-            <button className="btn-tog" onClick={()=>setShowMatch(p=>!p)}>{showMatch ? "뜻 숨기기" : "뜻 보기"}</button>
+            <table className="mtbl"><thead><tr><th>표현</th><th>뜻</th></tr></thead>
+            <tbody>{(result.workbook?.matching||[]).map((m,i)=><tr key={i}><td>{m.expression}</td><td style={{color:showMatch?"inherit":"transparent",background:showMatch?"transparent":"var(--sidebar-border)",borderRadius:4,transition:"all .2s",userSelect:showMatch?"auto":"none"}}>{m.meaning}</td></tr>)}</tbody></table>
+            <button className="btn-tog" onClick={()=>setShowMatch(p=>!p)}>{showMatch?"뜻 숨기기":"뜻 보기"}</button>
           </div>
           <div className="wb-head">3. 한→영 영작</div>
-          {(result.workbook?.translation||[]).map((t,i) => (
+          {(result.workbook?.translation||[]).map((t,i)=>(
             <div key={i} className="wb-card">
               <div className="wb-q">{i+1}. {t.korean}</div>
-              <input className="wb-input" placeholder="영어로 입력해보세요..." value={wbInputs[`t${i}`]||""} onChange={e=>setWbInput(`t${i}`,e.target.value)} />
+              <input className="wb-input" placeholder="영어로 입력해보세요..." value={wbInputs[`t${i}`]||""} onChange={e=>setWbInput(`t${i}`,e.target.value)}/>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                {reveals[`t${i}`] ? <button className="wb-rehide" onClick={()=>unrevel(`t${i}`)}>정답 숨기기</button> : <button className="btn-rev" onClick={()=>reveal(`t${i}`)}>정답 보기</button>}
+                {reveals[`t${i}`]?<button className="wb-rehide" onClick={()=>unrevel(`t${i}`)}>정답 숨기기</button>:<button className="btn-rev" onClick={()=>reveal(`t${i}`)}>정답 보기</button>}
               </div>
-              {reveals[`t${i}`] && <div className="wb-ans" style={{marginTop:8}}>{t.english}</div>}
+              {reveals[`t${i}`]&&<div className="wb-ans" style={{marginTop:8}}>{t.english}</div>}
             </div>
           ))}
           <div className="wb-head">4. 스스로 말해보기</div>
-          {(result.workbook?.speakingQuestions||[]).map((q,i) => <div key={i} className="q-item"><span className="q-badge">Q{i+1}</span><span className="q-txt">{q}</span></div>)}
+          {(result.workbook?.speakingQuestions||[]).map((q,i)=><div key={i} className="q-item"><span className="q-badge">Q{i+1}</span><span className="q-txt">{q}</span></div>)}
         </>
       );
     };
 
     return (
-      <>
-        <Head><title>{result.title} — S2S</title></Head>
-        <style jsx global>{G}</style>
-        <div className="result-wrap">
-          <div className="result-window">
-            <div className="res-titlebar">
-              <div className="dot dot-r"/><div className="dot dot-y"/><div className="dot dot-g"/>
-              <div className="res-titlebar-name">Script2Study</div>
-              <div className="res-header-btns">
-                <button className="btn-xs btn-xs-blue" onClick={printPDF}>↓ PDF</button>
-                <button className="btn-xs btn-xs-ghost" onClick={goInput}>새 교재</button>
-              </div>
-            </div>
-            <div className="mob-tabs">
-              {TABS.map(t => <button key={t.id} className={`mob-tab ${tab===t.id?"on":""}`} onClick={()=>setTab(t.id)}>{t.icon} {t.label}</button>)}
-            </div>
-            <div className="res-body">
-              <div className="res-sidebar">
-                <div className="res-sb-title">교재</div>
-                {TABS.map(item => <div key={item.id} className={`res-sb-item ${tab===item.id?"on":""}`} onClick={()=>setTab(item.id)}><span className="res-sb-icon">{item.icon}</span>{item.label}</div>)}
-              </div>
-              <div className="res-main">{renderContent()}</div>
-            </div>
-            <div className="app-footer"><span>Script2Study {VERSION}</span>·<span>{COPYRIGHT}</span></div>
+      <><Head><title>{result.title} — S2S</title></Head><style jsx global>{G}</style>
+      <div className="result-wrap"><div className="result-window">
+        <div className="res-titlebar">
+          <div className="dot dot-r"/><div className="dot dot-y"/><div className="dot dot-g"/>
+          <div className="res-titlebar-name">Script2Study</div>
+          <div className="res-header-btns">
+            <button className="btn-xs btn-xs-blue" onClick={printPDF}>↓ PDF</button>
+            <button className="btn-xs btn-xs-ghost" onClick={goInput}>새 교재</button>
           </div>
         </div>
-      </>
+        <div className="mob-tabs">{TABS.map(t=><button key={t.id} className={`mob-tab ${tab===t.id?"on":""}`} onClick={()=>setTab(t.id)}>{t.icon} {t.label}</button>)}</div>
+        <div className="res-body">
+          <div className="res-sidebar">
+            <div className="res-sb-title">교재</div>
+            {TABS.map(item=><div key={item.id} className={`res-sb-item ${tab===item.id?"on":""}`} onClick={()=>setTab(item.id)}><span className="res-sb-icon">{item.icon}</span>{item.label}</div>)}
+          </div>
+          <div className="res-main">{renderContent()}</div>
+        </div>
+        <div className="app-footer"><span>Script2Study {VERSION}</span>·<span>{COPYRIGHT}</span></div>
+      </div></div></>
     );
   }
 
   // ── INPUT ──
   const renderMainPanel = () => {
-    if (inputView === "recent") return (
-      <>
-        <div className="main-eyebrow">Script2Study</div>
-        <div className="main-title">최근 교재</div>
-        {recentList.length === 0 ? (
-          <div className="recent-empty"><div className="recent-empty-icon">📂</div>아직 저장된 교재가 없어요.<br/>교재를 생성하면 여기에 자동으로 저장돼요.</div>
-        ) : (
-          recentList.map(item => (
-            <div key={item.id} className="recent-card" onClick={()=>openRecent(item)}>
-              <div className="recent-card-icon">📄</div>
-              <div className="recent-card-body"><div className="recent-card-title">{item.title}</div><div className="recent-card-meta">{formatDate(item.savedAt)} 저장</div></div>
-              <button className="recent-card-del" onClick={e=>removeRecent(e, item.id)} title="삭제">🗑</button>
-            </div>
-          ))
-        )}
-      </>
+    if (inputView==="recent") return (
+      <><div className="main-eyebrow">Script2Study</div><div className="main-title">최근 교재</div>
+      {recentList.length===0
+        ? <div className="recent-empty"><div className="recent-empty-icon">📂</div>아직 저장된 교재가 없어요.<br/>교재를 생성하면 여기에 자동으로 저장돼요.</div>
+        : recentList.map(item=>(
+          <div key={item.id} className="recent-card" onClick={()=>openRecent(item)}>
+            <div className="recent-card-icon">📄</div>
+            <div className="recent-card-body"><div className="recent-card-title">{item.title}</div><div className="recent-card-meta">{formatDate(item.savedAt)} 저장</div></div>
+            <button className="recent-card-del" onClick={e=>removeRecent(e,item.id)} title="삭제">🗑</button>
+          </div>
+        ))
+      }</>
     );
     return (
-      <>
-        <div className="main-eyebrow">Script2Study</div>
-        <div className="main-title">새 교재 만들기</div>
-        <div className="tagline-bar"><span style={{fontSize:18}}>📖</span><span className="tagline-text">좋아하는 영어 콘텐츠 스크립트로<br/>나만의 학습 교재를 자동으로 만들어드려요</span></div>
-        <div className="field">
-          <label className="lbl">콘텐츠 제목 (선택)</label>
-          <input className="inp" type="text" placeholder="예: Hey Tablo EP.1 — MBTI는 옛말?" value={title} onChange={e=>setTitle(e.target.value)}/>
+      <><div className="main-eyebrow">Script2Study</div><div className="main-title">새 교재 만들기</div>
+      <div className="tagline-bar"><span style={{fontSize:18}}>📖</span><span className="tagline-text">좋아하는 영어 콘텐츠 스크립트로<br/>나만의 학습 교재를 자동으로 만들어드려요</span></div>
+      <div className="field"><label className="lbl">콘텐츠 제목 (선택)</label><input className="inp" type="text" placeholder="예: Hey Tablo EP.1 — MBTI는 옛말?" value={title} onChange={e=>setTitle(e.target.value)}/></div>
+      <div className="field"><label className="lbl">영어 스크립트 * (최대 10,000자)</label><textarea className="inp ta" placeholder={"여기에 영어 원문을 붙여넣으세요\n팟캐스트, 유튜브, 드라마 대본, 인터뷰 등 모두 OK"} value={script} onChange={e=>setScript(e.target.value)}/><div className="cnt">{script.length.toLocaleString()} / 10,000자</div></div>
+      <button className="btn-gen" onClick={generate} disabled={!script.trim()}>교재 자동 생성 →</button>
+      {error&&<div className="err">{error}</div>}
+      <div className="no-script-box">
+        <div className="no-script-title">🤔 잠깐! 스크립트가 없으신가요?
+          <button onClick={()=>setShowHelper(p=>!p)} style={{marginLeft:"auto",fontSize:12,color:"var(--pink-mid)",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>{showHelper?"접기 ▲":"방법 보기 ▼"}</button>
         </div>
-        <div className="field">
-          <label className="lbl">영어 스크립트 * (최대 10,000자)</label>
-          <textarea className="inp ta" placeholder={"여기에 영어 원문을 붙여넣으세요\n팟캐스트, 유튜브, 드라마 대본, 인터뷰 등 모두 OK"} value={script} onChange={e=>setScript(e.target.value)}/>
-          <div className="cnt">{script.length.toLocaleString()} / 10,000자</div>
-        </div>
-        <button className="btn-gen" onClick={generate} disabled={!script.trim()}>교재 자동 생성 →</button>
-        {error && <div className="err">{error}</div>}
-        <div className="no-script-box">
-          <div className="no-script-title">
-            🤔 잠깐! 스크립트가 없으신가요?
-            <button onClick={()=>setShowHelper(p=>!p)} style={{marginLeft:"auto",fontSize:12,color:"var(--pink-mid)",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
-              {showHelper ? "접기 ▲" : "방법 보기 ▼"}
-            </button>
-          </div>
-          {showHelper && SCRIPT_METHODS.map((m, i) => (
-            <div key={i} className="script-method" onClick={()=> m.link && window.open(m.link,"_blank")} style={{cursor: m.link ? "pointer" : "default"}}>
-              <div className="sm-icon">{m.icon}</div>
-              <div className="sm-body">
-                <div className="sm-title">{m.title}</div>
-                <div className="sm-desc">{m.desc}</div>
-                {m.link && <div className="sm-link">{m.linkText}</div>}
-                {m.subLinks && <div style={{display:"flex",gap:10,marginTop:6,flexWrap:"wrap"}}>{m.subLinks.map((sl,j) => <span key={j} onClick={e=>{e.stopPropagation();window.open(sl.url,"_blank");}} className="sm-link" style={{cursor:"pointer"}}>{sl.label}</span>)}</div>}
-              </div>
+        {showHelper&&SCRIPT_METHODS.map((m,i)=>(
+          <div key={i} className="script-method" onClick={()=>m.link&&window.open(m.link,"_blank")} style={{cursor:m.link?"pointer":"default"}}>
+            <div className="sm-icon">{m.icon}</div>
+            <div className="sm-body">
+              <div className="sm-title">{m.title}</div><div className="sm-desc">{m.desc}</div>
+              {m.link&&<div className="sm-link">{m.linkText}</div>}
+              {m.subLinks&&<div style={{display:"flex",gap:10,marginTop:6,flexWrap:"wrap"}}>{m.subLinks.map((sl,j)=><span key={j} onClick={e=>{e.stopPropagation();window.open(sl.url,"_blank");}} className="sm-link" style={{cursor:"pointer"}}>{sl.label}</span>)}</div>}
             </div>
-          ))}
-          {!showHelper && <div style={{fontSize:13,color:"var(--ink3)"}}>유튜브 자막 추출, AI 변환 등 3가지 방법을 알려드려요 👆</div>}
-        </div>
-      </>
+          </div>
+        ))}
+        {!showHelper&&<div style={{fontSize:13,color:"var(--ink3)"}}>유튜브 자막 추출, AI 변환 등 3가지 방법을 알려드려요 👆</div>}
+      </div></>
     );
   };
 
   return (
-    <>
-      <Head><title>Script2Study</title></Head>
-      <style jsx global>{G}</style>
-      <div className="input-screen">
-        <div className="finder-window">
-          <div className="titlebar">
-            <div className="dot dot-r"/><div className="dot dot-y"/><div className="dot dot-g"/>
-            <div className="titlebar-name">Script2Study</div>
+    <><Head><title>Script2Study</title></Head><style jsx global>{G}</style>
+    <div className="input-screen"><div className="finder-window">
+      <div className="titlebar"><div className="dot dot-r"/><div className="dot dot-y"/><div className="dot dot-g"/><div className="titlebar-name">Script2Study</div></div>
+      <div className="finder-body">
+        <div className="sidebar"><div className="sb-section"><div className="sb-label">메뉴</div>
+          <div className={`sb-item ${inputView==="new"?"active":""}`} onClick={()=>setInputView("new")}><span className="sb-icon">📝</span>새 교재</div>
+          <div className={`sb-item ${inputView==="recent"?"active":""}`} onClick={()=>setInputView("recent")}><span className="sb-icon">📂</span>최근 교재{recentList.length>0&&<span className="sb-badge">{recentList.length}</span>}</div>
+        </div></div>
+        <div className="main-panel">
+          <div className="mob-view-bar">
+            <button className={`mob-view-btn ${inputView==="new"?"active":""}`} onClick={()=>setInputView("new")}>📝 새 교재</button>
+            <button className={`mob-view-btn ${inputView==="recent"?"active":""}`} onClick={()=>setInputView("recent")}>📂 최근 {recentList.length>0?`(${recentList.length})`:""}</button>
           </div>
-          <div className="finder-body">
-            <div className="sidebar">
-              <div className="sb-section">
-                <div className="sb-label">메뉴</div>
-                <div className={`sb-item ${inputView==="new"?"active":""}`} onClick={()=>setInputView("new")}><span className="sb-icon">📝</span>새 교재</div>
-                <div className={`sb-item ${inputView==="recent"?"active":""}`} onClick={()=>setInputView("recent")}>
-                  <span className="sb-icon">📂</span>최근 교재
-                  {recentList.length > 0 && <span className="sb-badge">{recentList.length}</span>}
-                </div>
-              </div>
-            </div>
-            <div className="main-panel">
-              <div className="mob-view-bar">
-                <button className={`mob-view-btn ${inputView==="new"?"active":""}`} onClick={()=>setInputView("new")}>📝 새 교재</button>
-                <button className={`mob-view-btn ${inputView==="recent"?"active":""}`} onClick={()=>setInputView("recent")}>📂 최근 {recentList.length > 0 ? `(${recentList.length})` : ""}</button>
-              </div>
-              {renderMainPanel()}
-            </div>
-          </div>
-          <div className="app-footer"><span>Script2Study {VERSION}</span>·<span>{COPYRIGHT}</span></div>
+          {renderMainPanel()}
         </div>
       </div>
-    </>
+      <div className="app-footer"><span>Script2Study {VERSION}</span>·<span>{COPYRIGHT}</span></div>
+    </div></div></>
   );
 }
