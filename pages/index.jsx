@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Head from "next/head";
 
-const VERSION = "v0.9";
+const VERSION = "v0.9.1";
 const COPYRIGHT = `© 2025 kimsogenie. All rights reserved.`;
+const MAX_RECENT = 5;
 
 const QUOTES = [
   { ko: "시작은 반이 아니다. 시작은 시작일 뿐이다." },
@@ -44,7 +45,6 @@ function useTTS() {
     if (!synth) return;
     synth.cancel();
     if (speaking === id) { setSpeaking(null); return; }
-
     const trySpeak = () => {
       const u = new SpeechSynthesisUtterance(text);
       u.lang = "en-US"; u.rate = 0.88; u.pitch = 1; u.volume = 1;
@@ -58,7 +58,6 @@ function useTTS() {
       u.onerror = () => setSpeaking(null);
       synth.speak(u);
     };
-
     if (synth.getVoices().length === 0) setTimeout(trySpeak, 300);
     else trySpeak();
   }, [speaking]);
@@ -82,46 +81,30 @@ const G = `
 html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;
   background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
 
-/* ── INPUT SCREEN ── */
-.input-screen{
-  min-height:100vh;display:flex;align-items:flex-start;
-  justify-content:center;padding:32px 20px;background:var(--bg);
-}
-@media(max-width:600px){.input-screen{padding:16px 12px;align-items:flex-start;}}
+.input-screen{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:32px 20px;background:var(--bg);}
+@media(max-width:600px){.input-screen{padding:16px 12px;}}
 
-.finder-window{
-  width:100%;max-width:640px;background:var(--win);
-  border-radius:16px;box-shadow:var(--shadow);overflow:hidden;
-  border:1px solid rgba(255,255,255,0.9);
-}
+.finder-window{width:100%;max-width:640px;background:var(--win);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;border:1px solid rgba(255,255,255,0.9);}
 @media(max-width:600px){.finder-window{border-radius:14px;}}
 
-/* Titlebar */
-.titlebar{
-  height:40px;background:var(--sidebar);border-bottom:1px solid var(--sidebar-border);
-  display:flex;align-items:center;padding:0 14px;gap:7px;
-}
+.titlebar{height:40px;background:var(--sidebar);border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;padding:0 14px;gap:7px;}
 .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
 .dot-r{background:#FF5F57;}.dot-y{background:#FEBC2E;}.dot-g{background:#28C840;}
 .titlebar-name{flex:1;text-align:center;font-size:13px;font-weight:500;color:var(--ink3);margin-left:-36px;}
 
-/* Desktop: sidebar + main */
 .finder-body{display:flex;}
 
-.sidebar{
-  width:160px;flex-shrink:0;background:var(--sidebar);
-  border-right:1px solid var(--sidebar-border);padding:16px 0;
-}
+.sidebar{width:160px;flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--sidebar-border);padding:16px 0;}
 @media(max-width:600px){.sidebar{display:none;}}
 
 .sb-section{margin-bottom:18px;}
 .sb-label{font-size:11px;font-weight:700;color:var(--ink3);padding:0 14px 6px;text-transform:uppercase;letter-spacing:.07em;}
 .sb-item{display:flex;align-items:center;gap:9px;padding:6px 14px;font-size:14px;font-weight:500;color:var(--ink2);cursor:pointer;transition:background .15s;}
 .sb-item:hover{background:rgba(0,0,0,.04);}
-.sb-item.active{background:var(--blue-light);color:var(--blue);font-weight:600;}
+.sb-item.active{background:var(--pink-light);color:var(--pink-mid);font-weight:600;}
 .sb-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+.sb-badge{margin-left:auto;font-size:11px;font-weight:700;color:var(--pink-mid);background:var(--pink-light);border-radius:99px;padding:1px 6px;}
 
-/* Main panel */
 .main-panel{flex:1;padding:28px 28px 32px;min-width:0;}
 @media(max-width:600px){.main-panel{padding:22px 18px 28px;}}
 
@@ -131,78 +114,65 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 
 .field{margin-bottom:14px;}
 .lbl{display:block;font-size:12px;font-weight:600;color:var(--ink3);margin-bottom:6px;}
-.inp{
-  width:100%;padding:11px 13px;background:var(--win);border:1.5px solid var(--border);
-  border-radius:8px;font-size:15px;font-family:inherit;color:var(--ink);outline:none;
-  transition:border-color .2s,box-shadow .2s;
-}
-.inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-light);}
+.inp{width:100%;padding:11px 13px;background:var(--win);border:1.5px solid var(--border);border-radius:8px;font-size:15px;font-family:inherit;color:var(--ink);outline:none;transition:border-color .2s,box-shadow .2s;}
+.inp:focus{border-color:var(--pink-mid);box-shadow:0 0 0 3px var(--pink-light);}
 .inp::placeholder{color:var(--ink4);}
 .ta{height:160px;resize:vertical;line-height:1.6;}
 @media(max-width:600px){.ta{height:140px;}}
 .cnt{font-size:12px;color:var(--ink4);text-align:right;margin-top:4px;}
 
-/* ── 버튼: 비활성=회색, 활성=핑크 ── */
-.btn-gen{
-  width:100%;padding:14px;background:var(--pink-mid);color:#fff;border:none;
-  border-radius:8px;font-size:15px;font-weight:700;font-family:inherit;
-  cursor:pointer;letter-spacing:-.01em;transition:opacity .15s,transform .1s;
-  margin-top:4px;box-shadow:0 2px 8px rgba(212,132,154,.4);
-}
+.btn-gen{width:100%;padding:14px;background:var(--pink-mid);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:-.01em;transition:opacity .15s,transform .1s;margin-top:4px;box-shadow:0 2px 8px rgba(212,132,154,.4);}
 .btn-gen:hover{opacity:.88;transform:translateY(-1px);}
 .btn-gen:active{transform:translateY(0);}
 .btn-gen:disabled{background:var(--ink4);box-shadow:none;cursor:not-allowed;transform:none;opacity:1;}
 
 .err{font-size:13px;color:#E05555;text-align:center;margin-top:10px;}
 
-/* 스크립트 없나요 박스 */
-.no-script-box{
-  margin-top:20px;padding:18px;background:var(--panel);
-  border-radius:12px;border:1px solid var(--sidebar-border);
-}
-.no-script-title{
-  font-size:14px;font-weight:700;color:var(--ink);margin-bottom:12px;
-  display:flex;align-items:center;gap:6px;
-}
-.script-method{
-  display:flex;align-items:flex-start;gap:10px;
-  padding:10px 12px;background:var(--win);border-radius:8px;
-  margin-bottom:8px;border:1px solid var(--border);
-  text-decoration:none;cursor:pointer;transition:box-shadow .15s;
-}
+.no-script-box{margin-top:20px;padding:18px;background:var(--panel);border-radius:12px;border:1px solid var(--sidebar-border);}
+.no-script-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.script-method{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--win);border-radius:8px;margin-bottom:8px;border:1px solid var(--border);cursor:pointer;transition:box-shadow .15s;}
 .script-method:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
 .script-method:last-child{margin-bottom:0;}
 .sm-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
-.sm-body{}
 .sm-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:2px;}
 .sm-desc{font-size:12px;color:var(--ink3);line-height:1.5;}
-.sm-link{font-size:11px;color:var(--blue);margin-top:3px;font-weight:600;}
+.sm-link{font-size:11px;color:var(--pink-mid);margin-top:3px;font-weight:600;}
+
+/* ── 최근 교재 ── */
+.mob-view-bar{display:none;gap:8px;padding-bottom:16px;}
+@media(max-width:600px){.mob-view-bar{display:flex;}}
+.mob-view-btn{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;border:1.5px solid var(--sidebar-border);background:var(--win);color:var(--ink2);cursor:pointer;transition:all .15s;}
+.mob-view-btn.active{background:var(--pink-light);border-color:var(--pink-mid);color:var(--pink-mid);}
+
+.recent-empty{text-align:center;padding:48px 20px;color:var(--ink3);font-size:14px;line-height:1.8;}
+.recent-empty-icon{font-size:40px;margin-bottom:12px;}
+.recent-card{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--win);border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow-sm);margin-bottom:9px;cursor:pointer;transition:box-shadow .15s,transform .15s;}
+.recent-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-1px);}
+.recent-card-icon{font-size:28px;flex-shrink:0;}
+.recent-card-body{flex:1;min-width:0;}
+.recent-card-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.recent-card-meta{font-size:12px;color:var(--ink3);}
+.recent-card-del{flex-shrink:0;padding:5px 8px;background:none;border:none;font-size:14px;color:var(--ink4);cursor:pointer;border-radius:6px;transition:background .15s,color .15s;}
+.recent-card-del:hover{background:rgba(255,59,48,.1);color:#FF3B30;}
 
 /* ── LOADING ── */
 .load-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--bg);}
-.load-folder{font-size:56px;animation:bob 1.4s ease-in-out infinite;}
 @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
 .load-title{font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.02em;}
-.load-sub{font-size:14px;color:var(--ink3);}
 .load-bar{width:160px;height:3px;background:var(--sidebar-border);border-radius:99px;overflow:hidden;}
 .load-bar-fill{height:100%;background:var(--pink-mid);border-radius:99px;animation:fill 1.5s ease-in-out infinite;}
 @keyframes fill{0%{width:0%;margin-left:0;}60%{width:70%;margin-left:0;}100%{width:0%;margin-left:100%;}}
+.load-quote{max-width:320px;text-align:center;padding:20px 24px;background:rgba(255,255,255,.85);border-radius:16px;border:1px solid rgba(0,0,0,.06);}
+.load-quote-ko{font-size:15px;font-weight:700;color:var(--ink);line-height:1.7;margin-bottom:8px;}
+.load-quote-author{font-size:12px;color:var(--ink3);font-weight:600;}
+.load-pms{width:120px;height:120px;border-radius:50%;object-fit:cover;object-position:top;border:3px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.15);animation:bob 1.4s ease-in-out infinite;}
 
 /* ── RESULT ── */
 .result-wrap{min-height:100vh;background:var(--bg);}
-.result-window{
-  max-width:900px;margin:0 auto;background:var(--win);
-  min-height:100vh;box-shadow:0 0 60px rgba(0,0,0,.12);display:flex;flex-direction:column;
-}
-@media(min-width:900px){
-  .result-window{min-height:auto;margin:32px auto;border-radius:16px;overflow:hidden;min-height:calc(100vh - 64px);}
-}
+.result-window{max-width:900px;margin:0 auto;background:var(--win);min-height:100vh;box-shadow:0 0 60px rgba(0,0,0,.12);display:flex;flex-direction:column;}
+@media(min-width:900px){.result-window{min-height:auto;margin:32px auto;border-radius:16px;overflow:hidden;min-height:calc(100vh - 64px);}}
 
-.res-titlebar{
-  height:40px;background:var(--sidebar);border-bottom:1px solid var(--sidebar-border);
-  display:flex;align-items:center;padding:0 14px;gap:7px;
-  position:sticky;top:0;z-index:30;flex-shrink:0;
-}
+.res-titlebar{height:40px;background:var(--sidebar);border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;padding:0 14px;gap:7px;position:sticky;top:0;z-index:30;flex-shrink:0;}
 .res-titlebar-name{flex:1;text-align:center;font-size:13px;font-weight:500;color:var(--ink3);margin-left:-36px;}
 .res-header-btns{display:flex;gap:6px;position:absolute;right:14px;}
 .btn-xs{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:opacity .15s;border:none;white-space:nowrap;}
@@ -211,40 +181,20 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .btn-xs-ghost{background:rgba(0,0,0,.07);color:var(--ink2);}
 .btn-xs-ghost:hover{background:rgba(0,0,0,.11);}
 
-/* 모바일 탭바 */
-.mob-tabs{
-  display:none;background:var(--sidebar);
-  border-bottom:1px solid var(--sidebar-border);
-  overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
-  flex-shrink:0;
-}
+.mob-tabs{display:none;background:var(--sidebar);border-bottom:1px solid var(--sidebar-border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;}
 .mob-tabs::-webkit-scrollbar{display:none;}
 @media(max-width:700px){.mob-tabs{display:flex;}}
-.mob-tab{
-  flex-shrink:0;padding:11px 14px;font-size:13px;font-weight:500;
-  font-family:inherit;background:none;border:none;
-  border-bottom:2px solid transparent;cursor:pointer;
-  color:var(--ink3);white-space:nowrap;transition:all .18s;
-}
+.mob-tab{flex-shrink:0;padding:11px 14px;font-size:13px;font-weight:500;font-family:inherit;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;color:var(--ink3);white-space:nowrap;transition:all .18s;}
 .mob-tab.on{color:var(--pink-mid);border-bottom-color:var(--pink-mid);font-weight:600;}
 
 .res-body{display:flex;flex:1;min-height:0;background:var(--sidebar);}
-
-/* 데스크탑 사이드바 */
-.res-sidebar{
-  width:156px;flex-shrink:0;background:var(--sidebar);
-  border-right:1px solid var(--sidebar-border);
-  padding:16px 0;position:sticky;top:40px;
-  height:calc(100vh - 40px);overflow-y:auto;
-}
+.res-sidebar{width:156px;flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--sidebar-border);padding:16px 0;position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;}
 @media(max-width:700px){.res-sidebar{display:none;}}
-
 .res-sb-title{font-size:11px;font-weight:700;color:var(--ink3);padding:0 14px 8px;text-transform:uppercase;letter-spacing:.07em;}
 .res-sb-item{display:flex;align-items:center;gap:9px;padding:7px 14px;font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;transition:background .15s;}
 .res-sb-item:hover{background:rgba(0,0,0,.04);}
 .res-sb-item.on{background:var(--pink-light);color:var(--pink-mid);font-weight:600;}
 .res-sb-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
-
 .res-main{flex:1;padding:24px 22px 80px;min-width:0;overflow-y:auto;background:var(--win);}
 @media(max-width:600px){.res-main{padding:18px 16px 60px;}}
 
@@ -260,19 +210,13 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .card-label{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;}
 
 .sent-list{display:flex;flex-direction:column;}
-/* ── 구분선 강화: panel → sidebar-border ── */
 .sent-row{padding:12px 0;border-bottom:1px solid var(--sidebar-border);display:flex;align-items:flex-start;gap:10px;}
 .sent-row:last-child{border-bottom:none;}
 .sent-text{flex:1;}
 .sent-en{font-size:15px;font-weight:600;color:var(--ink);line-height:1.6;margin-bottom:4px;}
 .sent-ko{font-size:14px;color:var(--ink2);line-height:1.6;}
 
-/* ── TTS 버튼 크기 확대 (30→36px, 모바일 탭 영역 확보) ── */
-.tts-btn{
-  flex-shrink:0;width:36px;height:36px;border-radius:50%;border:none;
-  background:var(--panel);cursor:pointer;display:flex;align-items:center;
-  justify-content:center;font-size:16px;transition:all .15s;margin-top:2px;
-}
+.tts-btn{flex-shrink:0;width:36px;height:36px;border-radius:50%;border:none;background:var(--panel);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s;margin-top:2px;}
 .tts-btn:hover{background:var(--pink-light);}
 .tts-btn.playing{background:var(--pink-mid);animation:ptts .8s ease-in-out infinite;}
 @keyframes ptts{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
@@ -282,7 +226,6 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .expr-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
 .expr-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
 .expr-word{font-size:15px;font-weight:700;color:var(--ink);}
-.pick-tag{background:var(--pink);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;}
 .expr-mean{font-size:13px;color:var(--ink2);margin-bottom:3px;}
 .expr-ex{font-size:13px;color:var(--ink3);font-style:italic;margin-bottom:5px;}
 .alt-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;align-items:center;}
@@ -296,21 +239,10 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .exam-tag-오픽{background:#E3F2FD;color:#1565C0;}
 .exam-tag-수능{background:#F3E5F5;color:#6A1B9A;}
 
-/* 범례 */
-.legend-box{
-  display:flex;align-items:center;gap:6px;padding:8px 12px;
-  background:var(--panel);border-radius:8px;margin-bottom:14px;
-  font-size:12px;color:var(--ink3);flex-wrap:wrap;
-}
+.legend-box{display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--panel);border-radius:8px;margin-bottom:14px;font-size:12px;color:var(--ink3);flex-wrap:wrap;}
 .legend-item{display:flex;align-items:center;gap:4px;}
 
-/* 워크북 직접 입력 */
-.wb-input{
-  width:100%;padding:9px 12px;background:var(--panel);
-  border:1.5px solid var(--sidebar-border);border-radius:8px;
-  font-size:14px;font-family:inherit;color:var(--ink);outline:none;
-  transition:border-color .2s;margin-bottom:8px;
-}
+.wb-input{width:100%;padding:9px 12px;background:var(--panel);border:1.5px solid var(--sidebar-border);border-radius:8px;font-size:14px;font-family:inherit;color:var(--ink);outline:none;transition:border-color .2s;margin-bottom:8px;}
 .wb-input:focus{border-color:var(--pink-mid);background:var(--win);}
 .wb-input::placeholder{color:var(--ink4);}
 .wb-correct{border-color:#34C759!important;background:#F0FFF4!important;}
@@ -318,45 +250,10 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .wb-result{font-size:12px;margin-top:4px;font-weight:600;}
 .wb-result.ok{color:#34C759;}
 .wb-result.no{color:#FF3B30;}
-.wb-check-btn{
-  padding:7px 14px;background:var(--pink-mid);color:#fff;border:none;
-  border-radius:7px;font-size:13px;font-family:inherit;cursor:pointer;transition:opacity .15s;
-}
+.wb-check-btn{padding:7px 14px;background:var(--pink-mid);color:#fff;border:none;border-radius:7px;font-size:13px;font-family:inherit;cursor:pointer;transition:opacity .15s;}
 .wb-check-btn:hover{opacity:.85;}
-.wb-rehide{
-  padding:6px 12px;background:transparent;border:1.5px solid var(--sidebar-border);
-  border-radius:7px;font-size:12px;font-family:inherit;cursor:pointer;
-  color:var(--ink3);transition:all .15s;margin-left:8px;
-}
+.wb-rehide{padding:6px 12px;background:transparent;border:1.5px solid var(--sidebar-border);border-radius:7px;font-size:12px;font-family:inherit;cursor:pointer;color:var(--ink3);transition:all .15s;margin-left:8px;}
 .wb-rehide:hover{border-color:var(--ink);color:var(--ink);}
-
-/* 로딩 명언 */
-.load-quote{
-  max-width:320px;text-align:center;padding:20px 24px;
-  background:rgba(255,255,255,.85);border-radius:16px;
-  border:1px solid rgba(0,0,0,.06);
-}
-.load-quote-ko{font-size:15px;font-weight:700;color:var(--ink);line-height:1.7;margin-bottom:8px;}
-.load-quote-author{font-size:12px;color:var(--ink3);font-weight:600;}
-.load-pms{
-  width:120px;height:120px;border-radius:50%;
-  object-fit:cover;object-position:top;
-  border:3px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.15);
-  animation:bob 1.4s ease-in-out infinite;
-}
-
-/* 입력 화면 태그라인 */
-.app-footer{
-  text-align:center;padding:16px;
-  font-size:11px;color:var(--ink4);letter-spacing:.02em;
-  border-top:1px solid var(--border);margin-top:auto;
-}
-.app-footer span{margin:0 6px;}
-.tagline-bar{
-  display:flex;align-items:center;gap:8px;margin-bottom:20px;
-  padding:10px 14px;background:var(--pink-light);border-radius:10px;
-}
-.tagline-text{font-size:13px;color:var(--pink-mid);font-weight:600;line-height:1.5;}
 
 .conv-item{padding:10px 13px;background:var(--pink-light);border-radius:8px;border-left:3px solid var(--pink);font-size:14px;color:var(--ink2);line-height:1.7;margin-bottom:7px;}
 .conv-item:last-child{margin-bottom:0;}
@@ -374,7 +271,6 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .mem-alts{display:flex;flex-wrap:wrap;gap:4px;}
 .mem-alt{font-size:11px;padding:2px 7px;background:var(--panel);border-radius:999px;color:var(--ink3);}
 
-/* 쉐도잉 트레이닝 파트 카드 */
 .day-card{background:var(--win);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:9px;box-shadow:var(--shadow-sm);}
 .day-hd{font-size:13px;font-weight:700;color:var(--pink-mid);margin-bottom:11px;display:flex;align-items:center;gap:8px;}
 .day-hd::after{content:'';flex:1;height:1px;background:var(--border);}
@@ -394,12 +290,17 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .mtbl th{text-align:left;padding:8px 12px;background:var(--panel);font-size:11px;font-weight:600;color:var(--ink3);letter-spacing:.05em;text-transform:uppercase;}
 .mtbl td{padding:10px 12px;border-bottom:1px solid var(--panel);color:var(--ink);}
 .mtbl tr:last-child td{border-bottom:none;}
-.hidden-m{color:transparent;background:var(--sidebar-border);border-radius:4px;user-select:none;}
 .btn-tog{display:block;padding:8px 13px;background:var(--panel);border:none;border-radius:7px;font-size:13px;font-family:inherit;cursor:pointer;color:var(--ink2);margin-top:10px;transition:background .15s;}
 .btn-tog:hover{background:var(--sidebar-border);}
 .q-item{background:var(--win);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;box-shadow:var(--shadow-sm);}
 .q-badge{flex-shrink:0;font-size:11px;font-weight:700;color:var(--pink-mid);background:var(--pink-light);border-radius:5px;padding:3px 8px;margin-top:1px;}
 .q-txt{font-size:14px;line-height:1.65;color:var(--ink);}
+
+.tagline-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;padding:10px 14px;background:var(--pink-light);border-radius:10px;}
+.tagline-text{font-size:13px;color:var(--pink-mid);font-weight:600;line-height:1.5;}
+
+.app-footer{text-align:center;padding:16px;font-size:11px;color:var(--ink4);letter-spacing:.02em;border-top:1px solid var(--border);margin-top:auto;}
+.app-footer span{margin:0 6px;}
 `;
 
 const PRINT_CSS = `
@@ -437,34 +338,68 @@ const TABS = [
 
 const SCRIPT_METHODS = [
   {
-    icon:"📺",
-    title:"Downsub",
+    icon:"📺", title:"Downsub",
     desc:"유튜브/넷플릭스 링크 붙여넣으면 자막을 텍스트로 추출해줘요. 무료예요.",
-    link:"https://downsub.com",
-    linkText:"downsub.com →"
+    link:"https://downsub.com", linkText:"downsub.com →"
   },
   {
-    icon:"🤖",
-    title:"ChatGPT / Claude",
+    icon:"🤖", title:"ChatGPT / Claude",
     desc:"영상 링크나 내용을 AI에 붙여넣고 \"영어 스크립트로 정리해줘\"라고 하면 돼요.",
-    link:null,
-    linkText:null,
+    link:null, linkText:null,
     subLinks:[
       { label:"ChatGPT 열기 →", url:"https://chat.openai.com" },
       { label:"Claude 열기 →", url:"https://claude.ai" },
     ]
   },
   {
-    icon:"📋",
-    title:"유튜브 자막 복사",
+    icon:"📋", title:"유튜브 자막 복사",
     desc:"유튜브 영상 → ··· → 스크립트 열기 → 전체 선택 복사. 자막 있는 영상이면 바로 돼요.",
-    link:null,
-    linkText:null
+    link:null, linkText:null
   },
 ];
 
+// ── localStorage 유틸 ──
+const LS_KEY = "s2s_recent";
+
+function loadRecent() {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }
+  catch { return []; }
+}
+
+function saveRecent(titleStr, result) {
+  const item = {
+    id: Date.now(),
+    title: titleStr || result.title || "제목 없음",
+    savedAt: new Date().toISOString(),
+    result,
+  };
+  const prev = loadRecent();
+  // 같은 제목 있으면 덮어씀, 최대 5개 유지
+  const updated = [item, ...prev.filter(p => p.title !== item.title)].slice(0, MAX_RECENT);
+  try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch {}
+  return updated;
+}
+
+function deleteRecent(id) {
+  const updated = loadRecent().filter(p => p.id !== id);
+  try { localStorage.setItem(LS_KEY, JSON.stringify(updated)); } catch {}
+  return updated;
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${mm}/${dd} ${hh}:${min}`;
+}
+
 export default function App() {
   const [screen, setScreen] = useState("input");
+  const [inputView, setInputView] = useState("new"); // "new" | "recent"
+  const [recentList, setRecentList] = useState([]);
   const [script, setScript] = useState("");
   const [title, setTitle] = useState("");
   const [result, setResult] = useState(null);
@@ -484,6 +419,7 @@ export default function App() {
       if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
     }
     setQuoteIdx(Math.floor(Math.random() * QUOTES.length));
+    setRecentList(loadRecent());
   }, []);
 
   useEffect(() => {
@@ -506,8 +442,34 @@ export default function App() {
         body: JSON.stringify({script, title})
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error||"오류"); }
-      setResult(await res.json()); setPartIdx(0); setTab("sentences"); setScreen("result");
+      const data = await res.json();
+      // ── 생성 완료 시 자동 저장 ──
+      const updated = saveRecent(title, data);
+      setRecentList(updated);
+      setResult(data); setPartIdx(0); setTab("sentences"); setScreen("result");
     } catch(e) { setError(e.message||"오류가 발생했어요."); setScreen("input"); }
+  };
+
+  // 최근 교재 불러오기
+  const openRecent = (item) => {
+    setResult(item.result);
+    setTitle(item.title);
+    setPartIdx(0); setTab("sentences");
+    setReveals({}); setWbInputs({}); setWbChecked({}); setShowMatch(false);
+    setScreen("result");
+  };
+
+  // 최근 교재 삭제
+  const removeRecent = (e, id) => {
+    e.stopPropagation();
+    const updated = deleteRecent(id);
+    setRecentList(updated);
+  };
+
+  const goInput = () => {
+    setScreen("input");
+    setResult(null);
+    setInputView("new");
   };
 
   const printPDF = () => {
@@ -781,7 +743,6 @@ export default function App() {
               {reveals[`f${i}`] && <div className="wb-ans" style={{marginTop:8}}>정답: {q.answer}</div>}
             </div>
           ))}
-
           <div className="wb-head">2. 표현 매칭</div>
           <div className="wb-card">
             <table className="mtbl">
@@ -790,7 +751,7 @@ export default function App() {
                 {(result.workbook?.matching||[]).map((m,i) => (
                   <tr key={i}>
                     <td>{m.expression}</td>
-                    <td style={{color: showMatch ? "inherit" : "transparent", background: showMatch ? "transparent" : "var(--sidebar-border)", borderRadius:4, transition:"all .2s", userSelect: showMatch ? "auto" : "none"}}>{m.meaning}</td>
+                    <td style={{color:showMatch?"inherit":"transparent",background:showMatch?"transparent":"var(--sidebar-border)",borderRadius:4,transition:"all .2s",userSelect:showMatch?"auto":"none"}}>{m.meaning}</td>
                   </tr>
                 ))}
               </tbody>
@@ -799,7 +760,6 @@ export default function App() {
               {showMatch ? "뜻 숨기기" : "뜻 보기"}
             </button>
           </div>
-
           <div className="wb-head">3. 한→영 영작</div>
           {(result.workbook?.translation||[]).map((t,i) => (
             <div key={i} className="wb-card">
@@ -818,7 +778,6 @@ export default function App() {
               {reveals[`t${i}`] && <div className="wb-ans" style={{marginTop:8}}>{t.english}</div>}
             </div>
           ))}
-
           <div className="wb-head">4. 스스로 말해보기</div>
           {(result.workbook?.speakingQuestions||[]).map((q,i) => (
             <div key={i} className="q-item">
@@ -841,7 +800,7 @@ export default function App() {
               <div className="res-titlebar-name">Script2Study</div>
               <div className="res-header-btns">
                 <button className="btn-xs btn-xs-blue" onClick={printPDF}>↓ PDF</button>
-                <button className="btn-xs btn-xs-ghost" onClick={()=>{setScreen("input");setResult(null);}}>새 교재</button>
+                <button className="btn-xs btn-xs-ghost" onClick={goInput}>새 교재</button>
               </div>
             </div>
             <div className="mob-tabs">
@@ -871,7 +830,100 @@ export default function App() {
     );
   }
 
-  // ── INPUT
+  // ── INPUT: 새 교재 / 최근 교재 뷰 분리
+  const renderMainPanel = () => {
+    if (inputView === "recent") return (
+      <>
+        <div className="main-eyebrow">Script2Study</div>
+        <div className="main-title">최근 교재</div>
+        {recentList.length === 0 ? (
+          <div className="recent-empty">
+            <div className="recent-empty-icon">📂</div>
+            아직 저장된 교재가 없어요.<br/>
+            교재를 생성하면 여기에 자동으로 저장돼요.
+          </div>
+        ) : (
+          recentList.map(item => (
+            <div key={item.id} className="recent-card" onClick={()=>openRecent(item)}>
+              <div className="recent-card-icon">📄</div>
+              <div className="recent-card-body">
+                <div className="recent-card-title">{item.title}</div>
+                <div className="recent-card-meta">{formatDate(item.savedAt)} 저장</div>
+              </div>
+              <button className="recent-card-del" onClick={e=>removeRecent(e, item.id)} title="삭제">🗑</button>
+            </div>
+          ))
+        )}
+      </>
+    );
+
+    return (
+      <>
+        <div className="main-eyebrow">Script2Study</div>
+        <div className="main-title">새 교재 만들기</div>
+        <div className="tagline-bar">
+          <span style={{fontSize:18}}>📖</span>
+          <span className="tagline-text">좋아하는 영어 콘텐츠 스크립트로<br/>나만의 학습 교재를 자동으로 만들어드려요</span>
+        </div>
+        <div className="field">
+          <label className="lbl">콘텐츠 제목 (선택)</label>
+          <input className="inp" type="text"
+            placeholder="예: Hey Tablo EP.1 — MBTI는 옛말?"
+            value={title} onChange={e=>setTitle(e.target.value)}/>
+        </div>
+        <div className="field">
+          <label className="lbl">영어 스크립트 * (최대 10,000자)</label>
+          <textarea className="inp ta"
+            placeholder={"여기에 영어 원문을 붙여넣으세요\n팟캐스트, 유튜브, 드라마 대본, 인터뷰 등 모두 OK"}
+            value={script} onChange={e=>setScript(e.target.value)}/>
+          <div className="cnt">{script.length.toLocaleString()} / 10,000자</div>
+        </div>
+        <button className="btn-gen" onClick={generate} disabled={!script.trim()}>
+          교재 자동 생성 →
+        </button>
+        {error && <div className="err">{error}</div>}
+        <div className="no-script-box">
+          <div className="no-script-title">
+            🤔 잠깐! 스크립트가 없으신가요?
+            <button
+              onClick={()=>setShowHelper(p=>!p)}
+              style={{marginLeft:"auto",fontSize:12,color:"var(--pink-mid)",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
+              {showHelper ? "접기 ▲" : "방법 보기 ▼"}
+            </button>
+          </div>
+          {showHelper && SCRIPT_METHODS.map((m, i) => (
+            <div key={i} className="script-method"
+              onClick={()=> m.link && window.open(m.link,"_blank")}
+              style={{cursor: m.link ? "pointer" : "default"}}>
+              <div className="sm-icon">{m.icon}</div>
+              <div className="sm-body">
+                <div className="sm-title">{m.title}</div>
+                <div className="sm-desc">{m.desc}</div>
+                {m.link && <div className="sm-link">{m.linkText}</div>}
+                {m.subLinks && (
+                  <div style={{display:"flex",gap:10,marginTop:6,flexWrap:"wrap"}}>
+                    {m.subLinks.map((sl,j) => (
+                      <span key={j}
+                        onClick={e=>{e.stopPropagation();window.open(sl.url,"_blank");}}
+                        className="sm-link" style={{cursor:"pointer"}}>
+                        {sl.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          {!showHelper && (
+            <div style={{fontSize:13,color:"var(--ink3)"}}>
+              유튜브 자막 추출, AI 변환 등 3가지 방법을 알려드려요 👆
+            </div>
+          )}
+        </div>
+      </>
+    );
+  };
+
   return (
     <>
       <Head><title>Script2Study</title></Head>
@@ -883,83 +935,31 @@ export default function App() {
             <div className="titlebar-name">Script2Study</div>
           </div>
           <div className="finder-body">
-            {/* ── 사이드바: 교재 유형 필터 제거, 메뉴만 유지 ── */}
             <div className="sidebar">
               <div className="sb-section">
                 <div className="sb-label">메뉴</div>
-                <div className="sb-item active"><span className="sb-icon">📝</span>새 교재</div>
-                <div className="sb-item"><span className="sb-icon">📂</span>최근 교재</div>
+                <div className={`sb-item ${inputView==="new"?"active":""}`} onClick={()=>setInputView("new")}>
+                  <span className="sb-icon">📝</span>새 교재
+                </div>
+                <div className={`sb-item ${inputView==="recent"?"active":""}`} onClick={()=>setInputView("recent")}>
+                  <span className="sb-icon">📂</span>최근 교재
+                  {recentList.length > 0 && (
+                    <span className="sb-badge">{recentList.length}</span>
+                  )}
+                </div>
               </div>
             </div>
-
             <div className="main-panel">
-              <div className="main-eyebrow">Script2Study</div>
-              <div className="main-title">새 교재 만들기</div>
-              <div className="tagline-bar">
-                <span style={{fontSize:18}}>📖</span>
-                <span className="tagline-text">좋아하는 영어 콘텐츠 스크립트로<br/>나만의 학습 교재를 자동으로 만들어드려요</span>
+              {/* 모바일 전용 뷰 토글 */}
+              <div className="mob-view-bar">
+                <button className={`mob-view-btn ${inputView==="new"?"active":""}`} onClick={()=>setInputView("new")}>
+                  📝 새 교재
+                </button>
+                <button className={`mob-view-btn ${inputView==="recent"?"active":""}`} onClick={()=>setInputView("recent")}>
+                  📂 최근 {recentList.length > 0 ? `(${recentList.length})` : ""}
+                </button>
               </div>
-
-              <div className="field">
-                <label className="lbl">콘텐츠 제목 (선택)</label>
-                <input className="inp" type="text"
-                  placeholder="예: Hey Tablo EP.1 — MBTI는 옛말?"
-                  value={title} onChange={e=>setTitle(e.target.value)}/>
-              </div>
-              <div className="field">
-                <label className="lbl">영어 스크립트 * (최대 10,000자)</label>
-                <textarea className="inp ta"
-                  placeholder={"여기에 영어 원문을 붙여넣으세요\n팟캐스트, 유튜브, 드라마 대본, 인터뷰 등 모두 OK"}
-                  value={script} onChange={e=>setScript(e.target.value)}/>
-                <div className="cnt">{script.length.toLocaleString()} / 10,000자</div>
-              </div>
-
-              <button className="btn-gen" onClick={generate} disabled={!script.trim()}>
-                교재 자동 생성 →
-              </button>
-              {error && <div className="err">{error}</div>}
-
-              <div className="no-script-box">
-                <div className="no-script-title">
-                  🤔 잠깐! 스크립트가 없으신가요?
-                  <button
-                    onClick={()=>setShowHelper(p=>!p)}
-                    style={{marginLeft:"auto",fontSize:12,color:"var(--pink-mid)",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
-                    {showHelper ? "접기 ▲" : "방법 보기 ▼"}
-                  </button>
-                </div>
-
-                {showHelper && SCRIPT_METHODS.map((m, i) => (
-                  <div key={i} className="script-method"
-                    onClick={()=> m.link && window.open(m.link,"_blank")}
-                    style={{cursor: m.link ? "pointer" : "default"}}>
-                    <div className="sm-icon">{m.icon}</div>
-                    <div className="sm-body">
-                      <div className="sm-title">{m.title}</div>
-                      <div className="sm-desc">{m.desc}</div>
-                      {m.link && <div className="sm-link">{m.linkText}</div>}
-                      {m.subLinks && (
-                        <div style={{display:"flex",gap:10,marginTop:6,flexWrap:"wrap"}}>
-                          {m.subLinks.map((sl,j) => (
-                            <span key={j}
-                              onClick={e=>{e.stopPropagation();window.open(sl.url,"_blank");}}
-                              className="sm-link"
-                              style={{cursor:"pointer"}}>
-                              {sl.label}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {!showHelper && (
-                  <div style={{fontSize:13,color:"var(--ink3)"}}>
-                    유튜브 자막 추출, AI 변환 등 3가지 방법을 알려드려요 👆
-                  </div>
-                )}
-              </div>
+              {renderMainPanel()}
             </div>
           </div>
           <div className="app-footer">
