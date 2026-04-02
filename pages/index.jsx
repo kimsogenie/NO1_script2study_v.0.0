@@ -142,15 +142,16 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 @media(max-width:600px){.ta{height:140px;}}
 .cnt{font-size:12px;color:var(--ink4);text-align:right;margin-top:4px;}
 
+/* ── 버튼: 비활성=회색, 활성=핑크 ── */
 .btn-gen{
-  width:100%;padding:14px;background:var(--blue);color:#fff;border:none;
+  width:100%;padding:14px;background:var(--pink-mid);color:#fff;border:none;
   border-radius:8px;font-size:15px;font-weight:700;font-family:inherit;
   cursor:pointer;letter-spacing:-.01em;transition:opacity .15s,transform .1s;
-  margin-top:4px;box-shadow:0 2px 8px rgba(74,144,217,.35);
+  margin-top:4px;box-shadow:0 2px 8px rgba(212,132,154,.4);
 }
 .btn-gen:hover{opacity:.88;transform:translateY(-1px);}
 .btn-gen:active{transform:translateY(0);}
-.btn-gen:disabled{background:var(--ink4);box-shadow:none;cursor:not-allowed;transform:none;}
+.btn-gen:disabled{background:var(--ink4);box-shadow:none;cursor:not-allowed;transform:none;opacity:1;}
 
 .err{font-size:13px;color:#E05555;text-align:center;margin-top:10px;}
 
@@ -184,7 +185,7 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .load-title{font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.02em;}
 .load-sub{font-size:14px;color:var(--ink3);}
 .load-bar{width:160px;height:3px;background:var(--sidebar-border);border-radius:99px;overflow:hidden;}
-.load-bar-fill{height:100%;background:var(--blue);border-radius:99px;animation:fill 1.5s ease-in-out infinite;}
+.load-bar-fill{height:100%;background:var(--pink-mid);border-radius:99px;animation:fill 1.5s ease-in-out infinite;}
 @keyframes fill{0%{width:0%;margin-left:0;}60%{width:70%;margin-left:0;}100%{width:0%;margin-left:100%;}}
 
 /* ── RESULT ── */
@@ -225,9 +226,8 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
   border-bottom:2px solid transparent;cursor:pointer;
   color:var(--ink3);white-space:nowrap;transition:all .18s;
 }
-.mob-tab.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:600;}
+.mob-tab.on{color:var(--pink-mid);border-bottom-color:var(--pink-mid);font-weight:600;}
 
-/* res-body: sidebar는 --sidebar 배경, main은 --win 배경으로 분리 → 회색 바 잘림 방지 */
 .res-body{display:flex;flex:1;min-height:0;background:var(--sidebar);}
 
 /* 데스크탑 사이드바 */
@@ -242,10 +242,9 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .res-sb-title{font-size:11px;font-weight:700;color:var(--ink3);padding:0 14px 8px;text-transform:uppercase;letter-spacing:.07em;}
 .res-sb-item{display:flex;align-items:center;gap:9px;padding:7px 14px;font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;transition:background .15s;}
 .res-sb-item:hover{background:rgba(0,0,0,.04);}
-.res-sb-item.on{background:var(--blue-light);color:var(--blue);font-weight:600;}
+.res-sb-item.on{background:var(--pink-light);color:var(--pink-mid);font-weight:600;}
 .res-sb-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
 
-/* res-main: 흰 배경으로 명시 → 사이드바 회색과 분리 */
 .res-main{flex:1;padding:24px 22px 80px;min-width:0;overflow-y:auto;background:var(--win);}
 @media(max-width:600px){.res-main{padding:18px 16px 60px;}}
 
@@ -261,22 +260,24 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .card-label{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;}
 
 .sent-list{display:flex;flex-direction:column;}
-.sent-row{padding:12px 0;border-bottom:1px solid var(--panel);display:flex;align-items:flex-start;gap:10px;}
+/* ── 구분선 강화: panel → sidebar-border ── */
+.sent-row{padding:12px 0;border-bottom:1px solid var(--sidebar-border);display:flex;align-items:flex-start;gap:10px;}
 .sent-row:last-child{border-bottom:none;}
 .sent-text{flex:1;}
 .sent-en{font-size:15px;font-weight:600;color:var(--ink);line-height:1.6;margin-bottom:4px;}
 .sent-ko{font-size:14px;color:var(--ink2);line-height:1.6;}
 
+/* ── TTS 버튼 크기 확대 (30→36px, 모바일 탭 영역 확보) ── */
 .tts-btn{
-  flex-shrink:0;width:30px;height:30px;border-radius:50%;border:none;
+  flex-shrink:0;width:36px;height:36px;border-radius:50%;border:none;
   background:var(--panel);cursor:pointer;display:flex;align-items:center;
-  justify-content:center;font-size:14px;transition:all .15s;margin-top:2px;
+  justify-content:center;font-size:16px;transition:all .15s;margin-top:2px;
 }
-.tts-btn:hover{background:var(--blue-light);}
-.tts-btn.playing{background:var(--blue);animation:ptts .8s ease-in-out infinite;}
+.tts-btn:hover{background:var(--pink-light);}
+.tts-btn.playing{background:var(--pink-mid);animation:ptts .8s ease-in-out infinite;}
 @keyframes ptts{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
 
-.expr-row{padding:13px 0;border-bottom:1px solid var(--panel);}
+.expr-row{padding:13px 0;border-bottom:1px solid var(--sidebar-border);}
 .expr-row:last-child{border-bottom:none;}
 .expr-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
 .expr-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
@@ -287,7 +288,7 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .alt-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;align-items:center;}
 .alt-label{font-size:11px;font-weight:600;color:var(--ink3);}
 .alt-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:var(--panel);border:1px solid var(--sidebar-border);border-radius:999px;font-size:12px;color:var(--ink2);cursor:pointer;transition:all .15s;}
-.alt-chip:hover{background:var(--blue-light);border-color:var(--blue);color:var(--blue);}
+.alt-chip:hover{background:var(--pink-light);border-color:var(--pink-mid);color:var(--pink-mid);}
 .exam-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
 .exam-tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:.02em;}
 .exam-tag-토익{background:#FFF3E0;color:#E65100;}
@@ -310,7 +311,7 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
   font-size:14px;font-family:inherit;color:var(--ink);outline:none;
   transition:border-color .2s;margin-bottom:8px;
 }
-.wb-input:focus{border-color:var(--blue);background:var(--win);}
+.wb-input:focus{border-color:var(--pink-mid);background:var(--win);}
 .wb-input::placeholder{color:var(--ink4);}
 .wb-correct{border-color:#34C759!important;background:#F0FFF4!important;}
 .wb-wrong{border-color:#FF3B30!important;background:#FFF0EF!important;}
@@ -318,7 +319,7 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .wb-result.ok{color:#34C759;}
 .wb-result.no{color:#FF3B30;}
 .wb-check-btn{
-  padding:7px 14px;background:var(--blue);color:#fff;border:none;
+  padding:7px 14px;background:var(--pink-mid);color:#fff;border:none;
   border-radius:7px;font-size:13px;font-family:inherit;cursor:pointer;transition:opacity .15s;
 }
 .wb-check-btn:hover{opacity:.85;}
@@ -353,9 +354,9 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .app-footer span{margin:0 6px;}
 .tagline-bar{
   display:flex;align-items:center;gap:8px;margin-bottom:20px;
-  padding:10px 14px;background:var(--blue-light);border-radius:10px;
+  padding:10px 14px;background:var(--pink-light);border-radius:10px;
 }
-.tagline-text{font-size:13px;color:var(--blue);font-weight:600;line-height:1.5;}
+.tagline-text{font-size:13px;color:var(--pink-mid);font-weight:600;line-height:1.5;}
 
 .conv-item{padding:10px 13px;background:var(--pink-light);border-radius:8px;border-left:3px solid var(--pink);font-size:14px;color:var(--ink2);line-height:1.7;margin-bottom:7px;}
 .conv-item:last-child{margin-bottom:0;}
@@ -375,18 +376,18 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 
 /* 쉐도잉 트레이닝 파트 카드 */
 .day-card{background:var(--win);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:9px;box-shadow:var(--shadow-sm);}
-.day-hd{font-size:13px;font-weight:700;color:var(--blue);margin-bottom:11px;display:flex;align-items:center;gap:8px;}
+.day-hd{font-size:13px;font-weight:700;color:var(--pink-mid);margin-bottom:11px;display:flex;align-items:center;gap:8px;}
 .day-hd::after{content:'';flex:1;height:1px;background:var(--border);}
-.day-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--panel);font-size:14px;color:var(--ink);align-items:center;line-height:1.6;}
+.day-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--sidebar-border);font-size:14px;color:var(--ink);align-items:center;line-height:1.6;}
 .day-row:last-child{border-bottom:none;padding-bottom:0;}
-.day-num{flex-shrink:0;font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-light);border-radius:5px;padding:2px 7px;min-width:24px;text-align:center;}
+.day-num{flex-shrink:0;font-size:11px;font-weight:700;color:var(--pink-mid);background:var(--pink-light);border-radius:5px;padding:2px 7px;min-width:24px;text-align:center;}
 .day-txt{flex:1;}
 
 .wb-head{font-size:17px;font-weight:700;color:var(--ink);margin:22px 0 10px;letter-spacing:-.02em;}
 .wb-head:first-child{margin-top:0;}
 .wb-card{background:var(--win);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;box-shadow:var(--shadow-sm);}
 .wb-q{font-size:14px;color:var(--ink);line-height:1.65;margin-bottom:9px;}
-.wb-ans{font-size:13px;font-weight:600;color:var(--blue);padding:8px 12px;background:var(--blue-light);border-radius:7px;}
+.wb-ans{font-size:13px;font-weight:600;color:var(--pink-mid);padding:8px 12px;background:var(--pink-light);border-radius:7px;}
 .btn-rev{padding:7px 13px;background:var(--panel);border:none;border-radius:7px;font-size:13px;font-family:inherit;cursor:pointer;color:var(--ink2);transition:background .15s;}
 .btn-rev:hover{background:var(--sidebar-border);}
 .mtbl{width:100%;border-collapse:collapse;font-size:14px;}
@@ -406,22 +407,22 @@ const PRINT_CSS = `
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Pretendard',-apple-system,'Apple SD Gothic Neo',sans-serif;color:#1A1A1A;background:#fff;padding:28px 32px;}
   .doc{max-width:680px;margin:0 auto;}
-  .hdr{background:#4A90D9;color:#fff;padding:18px 22px;border-radius:10px;margin-bottom:24px;}
+  .hdr{background:#D4849A;color:#fff;padding:18px 22px;border-radius:10px;margin-bottom:24px;}
   .hdr h1{font-size:20px;font-weight:700;margin-bottom:3px;}
   .hdr p{font-size:13px;opacity:.82;}
-  .pt{font-size:16px;font-weight:700;color:#4A90D9;border-bottom:2px solid #4A90D9;padding-bottom:6px;margin:22px 0 12px;}
+  .pt{font-size:16px;font-weight:700;color:#D4849A;border-bottom:2px solid #D4849A;padding-bottom:6px;margin:22px 0 12px;}
   .sec{font-size:10px;font-weight:700;color:#7A7A7A;text-transform:uppercase;letter-spacing:.07em;margin:14px 0 7px;}
-  .s{padding:8px 0;border-bottom:1px solid #F0F0F0;}
+  .s{padding:8px 0;border-bottom:1px solid #E0E0E0;}
   .se{font-size:14px;font-weight:600;margin-bottom:3px;}
   .sk{font-size:13px;color:#3C3C3C;}
   table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px;}
-  th{background:#4A90D9;color:#fff;padding:7px 11px;text-align:left;font-size:11px;font-weight:600;}
-  td{padding:8px 11px;border-bottom:1px solid #F0F0F0;}
-  .shi{padding:7px 11px;background:#EEF5FC;border-left:3px solid #4A90D9;margin-bottom:5px;font-size:13px;border-radius:4px;}
+  th{background:#D4849A;color:#fff;padding:7px 11px;text-align:left;font-size:11px;font-weight:600;}
+  td{padding:8px 11px;border-bottom:1px solid #E0E0E0;}
+  .shi{padding:7px 11px;background:#FDF0F3;border-left:3px solid #D4849A;margin-bottom:5px;font-size:13px;border-radius:4px;}
   .lb{padding:10px 13px;background:#F7F7F7;border-radius:7px;font-size:13px;color:#3C3C3C;line-height:1.7;}
-  .ph{font-size:13px;font-weight:700;color:#4A90D9;margin:11px 0 5px;}
-  .wr{padding:7px 0;border-bottom:1px solid #F0F0F0;font-size:13px;}
-  .ans{color:#4A90D9;font-weight:600;}
+  .ph{font-size:13px;font-weight:700;color:#D4849A;margin:11px 0 5px;}
+  .wr{padding:7px 0;border-bottom:1px solid #E0E0E0;font-size:13px;}
+  .ans{color:#D4849A;font-weight:600;}
   .qr{padding:8px 11px;background:#F7F7F7;border-radius:6px;margin-bottom:5px;font-size:13px;}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 `;
@@ -733,7 +734,6 @@ export default function App() {
         </>
       );
 
-      // ── 쉐도잉: Day → Part 구조로 변경
       if (tab === "shadowing") return (
         <>
           <div className="sec-head">쉐도잉 트레이닝</div>
@@ -883,18 +883,12 @@ export default function App() {
             <div className="titlebar-name">Script2Study</div>
           </div>
           <div className="finder-body">
+            {/* ── 사이드바: 교재 유형 필터 제거, 메뉴만 유지 ── */}
             <div className="sidebar">
               <div className="sb-section">
                 <div className="sb-label">메뉴</div>
                 <div className="sb-item active"><span className="sb-icon">📝</span>새 교재</div>
                 <div className="sb-item"><span className="sb-icon">📂</span>최근 교재</div>
-              </div>
-              <div className="sb-section">
-                <div className="sb-label">교재 유형</div>
-                <div className="sb-item"><span className="sb-icon">🎙</span>팟캐스트</div>
-                <div className="sb-item"><span className="sb-icon">📺</span>유튜브</div>
-                <div className="sb-item"><span className="sb-icon">🎬</span>드라마</div>
-                <div className="sb-item"><span className="sb-icon">📰</span>인터뷰</div>
               </div>
             </div>
 
@@ -930,7 +924,7 @@ export default function App() {
                   🤔 잠깐! 스크립트가 없으신가요?
                   <button
                     onClick={()=>setShowHelper(p=>!p)}
-                    style={{marginLeft:"auto",fontSize:12,color:"var(--blue)",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
+                    style={{marginLeft:"auto",fontSize:12,color:"var(--pink-mid)",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
                     {showHelper ? "접기 ▲" : "방법 보기 ▼"}
                   </button>
                 </div>
