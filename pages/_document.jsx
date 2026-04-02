@@ -17,6 +17,9 @@ export default function Document() {
           }}
         />
 
+        {/* ── 카카오 공유 SDK ── */}
+        <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossOrigin="anonymous" />
+
         {/* ── PWA ── */}
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#D4849A" />
@@ -31,7 +34,7 @@ export default function Document() {
         <meta name="author" content="kimsogenie" />
         <meta name="robots" content="index, follow" />
 
-        {/* ── Open Graph (카카오톡·슬랙 등 링크 미리보기) ── */}
+        {/* ── Open Graph ── */}
         <meta property="og:type" content="website" />
         <meta property="og:title" content="Script2Study — AI 영어 교재 자동 생성기" />
         <meta property="og:description" content="좋아하는 영어 콘텐츠 스크립트로 나만의 학습 교재를 자동으로 만들어드려요. 해석·표현·암기장·쉐도잉·워크북 한 번에!" />
