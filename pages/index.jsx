@@ -5,7 +5,7 @@ const VERSION = "v0.9.4";
 const COPYRIGHT = `© 2026 kimsogenie. All rights reserved.`;
 const MAX_RECENT = 5;
 
-const KAKAO_APP_KEY = "35f69f10d20626913adbff859a63a32d";
+const KAKAO_APP_KEY = "b6e810ac01f323b127717efdc6f37d46";
 const APP_URL = "https://no-1-script2study-v-0-0.vercel.app";
 
 const QUOTES = [
