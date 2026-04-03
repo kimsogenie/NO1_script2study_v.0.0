@@ -434,7 +434,7 @@ function shareKakao(title, result) {
   try{
     if(!window.Kakao.isInitialized())window.Kakao.init(KAKAO_APP_KEY);
     const encoded = encodeShare(result);
-    const shareUrl = encoded ? `${APP_URL}/#share=${encoded}` : APP_URL;
+    const shareUrl = APP_URL;
     window.Kakao.Share.sendDefault({
       objectType:"feed",
       content:{
@@ -443,7 +443,7 @@ function shareKakao(title, result) {
         imageUrl:`${APP_URL}/icon-512.png`,
         link:{mobileWebUrl:shareUrl,webUrl:shareUrl},
       },
-      buttons:[{title:"교재 바로 보기",link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}],
+      buttons:[{title:"교재 만들러 가기",link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}],
     });
   }catch(e){console.error("카카오 공유 오류:",e);}
 }
