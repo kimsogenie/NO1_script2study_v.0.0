@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Head from "next/head";
 
-const VERSION = "v0.9.6";
+const VERSION = "v0.9.7";
 const COPYRIGHT = `© 2026 kimsogenie. All rights reserved.`;
 const MAX_RECENT = 5;
 
@@ -29,18 +29,6 @@ const QUOTES = [
   { ko: "고생 끝에 낙이 오는 게 아니라, 고생 끝에 골병 난다." },
   { ko: "세상은 넓고 할 일은 많지 않다. 할 일은 정해져 있다." },
 ];
-
-// ── 교재 공유 인코딩/디코딩 ──
-function encodeShare(result) {
-  try {
-    return btoa(unescape(encodeURIComponent(JSON.stringify(result))));
-  } catch { return null; }
-}
-function decodeShare(encoded) {
-  try {
-    return JSON.parse(decodeURIComponent(escape(atob(encoded))));
-  } catch { return null; }
-}
 
 function useTTS() {
   const [speaking, setSpeaking] = useState(null);
@@ -348,16 +336,14 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .share-banner-btns{display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;}
 .btn-kakao{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:var(--kakao);color:var(--kakao-ink);border:none;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
 .btn-kakao:hover{opacity:.88;}
+.btn-kakao:disabled{opacity:.5;cursor:not-allowed;}
 .btn-copy{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:var(--panel);color:var(--ink2);border:1.5px solid var(--sidebar-border);border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .15s;white-space:nowrap;}
 .btn-copy:hover{border-color:var(--pink-mid);color:var(--pink-mid);}
 .btn-copy.copied{border-color:var(--green);color:var(--green);}
+.btn-copy:disabled{opacity:.5;cursor:not-allowed;}
 
-/* ── 공유로 열린 교재 배너 ── */
-.shared-notice{
-  display:flex;align-items:center;gap:10px;padding:10px 14px;
-  background:var(--pink-light);border-radius:10px;margin-bottom:16px;
-  border:1px solid var(--pink);font-size:13px;color:var(--pink-mid);font-weight:600;
-}
+/* ── 공유받은 교재 안내 ── */
+.shared-notice{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--pink-light);border-radius:10px;margin-bottom:16px;border:1px solid var(--pink);font-size:13px;color:var(--pink-mid);font-weight:600;}
 
 .conv-item{padding:10px 13px;background:var(--pink-light);border-radius:8px;border-left:3px solid var(--pink);font-size:14px;color:var(--ink2);line-height:1.7;margin-bottom:7px;}
 .conv-item:last-child{margin-bottom:0;}
@@ -428,59 +414,18 @@ function saveRecent(titleStr,result){const item={id:Date.now(),title:titleStr||r
 function deleteRecent(id){const u=loadRecent().filter(p=>p.id!==id);try{localStorage.setItem(LS_KEY,JSON.stringify(u));}catch{}return u;}
 function formatDate(iso){const d=new Date(iso);return`${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}
 
-// ── 카카오 공유 (교재 데이터 URL에 포함) ──
-function shareKakao(title, result) {
-  if(typeof window==="undefined"||!window.Kakao)return;
-  try{
-    if(!window.Kakao.isInitialized())window.Kakao.init(KAKAO_APP_KEY);
-    const encoded = encodeShare(result);
-    const shareUrl = APP_URL;
-    window.Kakao.Share.sendDefault({
-      objectType:"feed",
-      content:{
-        title:`📖 ${title||"Script2Study 교재"}`,
-        description:"영어 스크립트로 만든 AI 학습 교재예요. 해석·표현·쉐도잉·퀴즈까지 한 번에!",
-        imageUrl:`${APP_URL}/icon-512.png`,
-        link:{mobileWebUrl:shareUrl,webUrl:shareUrl},
-      },
-      buttons:[{title:"교재 만들러 가기",link:{mobileWebUrl:shareUrl,webUrl:shareUrl}}],
-    });
-  }catch(e){console.error("카카오 공유 오류:",e);}
-}
-
-// ── 링크 복사 ──
-function copyShareLink(result, setCopied) {
-  const encoded = encodeShare(result);
-  if(!encoded)return;
-  const shareUrl = `${APP_URL}/#share=${encoded}`;
-  navigator.clipboard.writeText(shareUrl).then(()=>{
-    setCopied(true);
-    setTimeout(()=>setCopied(false), 2000);
-  }).catch(()=>{});
-}
-
-// ── HTML 다운로드 ──
 function downloadHTML(result, withAnswers) {
   const safeTitle = result.title || "Script2Study";
   const badge = withAnswers ? "📋 정답 포함 버전" : "✏️ 문제만 버전";
   const filename = `Script2Study_${safeTitle}_${withAnswers?"정답포함":"문제만"}.html`;
   let h = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${safeTitle} — Script2Study</title><link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet"/><style>${DOC_CSS}</style></head><body><div class="doc">`;
   h += `<div class="hdr"><h1>Script2Study</h1><p>${safeTitle}</p><span class="hdr-badge">${badge}</span></div>`;
-  (result.parts||[]).forEach(p=>{
-    h+=`<div class="pt">${p.partTitle||`Part ${p.partNumber}`}</div><div class="sec">문장별 해석</div>`;
-    (p.sentences||[]).forEach(s=>{h+=`<div class="s"><div class="se">${s.en}</div><div class="sk">${s.ko}</div></div>`;});
-    if(p.keyExpressions?.length){h+=`<div class="sec">핵심 표현</div><table><thead><tr><th>Expression</th><th>Meaning</th><th>Example</th></tr></thead><tbody>`;p.keyExpressions.forEach(e=>{h+=`<tr><td>${e.star?"⭐ ":""}${e.expression}</td><td>${e.meaning}</td><td>${e.example}</td></tr>`;});h+=`</tbody></table>`;}
-    if(p.shadowingSentences?.length){h+=`<div class="sec">쉐도잉 문장</div>`;p.shadowingSentences.forEach(s=>{h+=`<div class="shi">${s}</div>`;});}
-    if(p.learningPoints)h+=`<div class="sec">학습 포인트</div><div class="lb">${p.learningPoints}</div>`;
-  });
+  (result.parts||[]).forEach(p=>{h+=`<div class="pt">${p.partTitle||`Part ${p.partNumber}`}</div><div class="sec">문장별 해석</div>`;(p.sentences||[]).forEach(s=>{h+=`<div class="s"><div class="se">${s.en}</div><div class="sk">${s.ko}</div></div>`;});if(p.keyExpressions?.length){h+=`<div class="sec">핵심 표현</div><table><thead><tr><th>Expression</th><th>Meaning</th><th>Example</th></tr></thead><tbody>`;p.keyExpressions.forEach(e=>{h+=`<tr><td>${e.star?"⭐ ":""}${e.expression}</td><td>${e.meaning}</td><td>${e.example}</td></tr>`;});h+=`</tbody></table>`;}if(p.shadowingSentences?.length){h+=`<div class="sec">쉐도잉 문장</div>`;p.shadowingSentences.forEach(s=>{h+=`<div class="shi">${s}</div>`;});}if(p.learningPoints)h+=`<div class="sec">학습 포인트</div><div class="lb">${p.learningPoints}</div>`;});
   if(result.memoryCards?.length){h+=`<div class="pt">전체 암기장</div><table><thead><tr><th>Expression</th><th>${withAnswers?"Meaning":"Meaning (빈칸)"}</th><th>유사 표현</th></tr></thead><tbody>`;result.memoryCards.forEach(m=>{h+=`<tr><td>${m.expression}</td><td>${withAnswers?m.meaning:`<span class="mem-blank"></span>`}</td><td style="color:#7A7A7A;font-size:11px">${(m.alternatives||[]).join(", ")}</td></tr>`;});h+=`</tbody></table>`;}
   if(result.shadowingTraining?.length){h+=`<div class="pt">쉐도잉 트레이닝</div>`;result.shadowingTraining.forEach(pt=>{h+=`<div class="ph">${pt.partTitle||`Part ${pt.partNumber}`}</div>`;(pt.sentences||[]).forEach((s,i)=>{h+=`<div class="wr">${i+1}. ${s}</div>`;});});}
   if(result.workbook){const wb=result.workbook;h+=`<div class="pt">워크북</div>`;if(wb.fillInBlank?.length){h+=`<div class="sec">1. 빈칸 채우기</div>`;wb.fillInBlank.forEach((q,i)=>{h+=`<div class="wr">${i+1}. ${q.question}${withAnswers?`<br/><span class="ans">정답: ${q.answer}</span>`:`<span class="blank-line"></span>`}</div>`;});}if(wb.matching?.length){h+=`<div class="sec">2. 표현 매칭</div><table><thead><tr><th>Expression</th><th>${withAnswers?"Meaning":"Meaning (빈칸)"}</th></tr></thead><tbody>`;wb.matching.forEach(m=>{h+=`<tr><td>${m.expression}</td><td>${withAnswers?m.meaning:`<span class="mem-blank" style="width:100px;"></span>`}</td></tr>`;});h+=`</tbody></table>`;}if(wb.translation?.length){h+=`<div class="sec">3. 한→영 영작</div>`;wb.translation.forEach((t,i)=>{h+=`<div class="wr">${i+1}. ${t.korean}${withAnswers?`<br/><span class="ans">→ ${t.english}</span>`:`<br/><div class="blank-box"></div>`}</div>`;});}if(wb.speakingQuestions?.length){h+=`<div class="sec">4. 스스로 말해보기</div>`;wb.speakingQuestions.forEach((q,i)=>{h+=`<div class="qr">Q${i+1}. ${q}</div>`;});}}
   h+=`<div class="footer">Script2Study ${VERSION} · ${COPYRIGHT}</div></div></body></html>`;
-  const blob=new Blob([h],{type:"text/html;charset=utf-8"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");a.href=url;a.download=filename;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  const blob=new Blob([h],{type:"text/html;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
 }
 
 export default function App() {
@@ -490,7 +435,7 @@ export default function App() {
   const [script, setScript] = useState("");
   const [title, setTitle] = useState("");
   const [result, setResult] = useState(null);
-  const [isSharedView, setIsSharedView] = useState(false); // 공유 링크로 열렸는지
+  const [isSharedView, setIsSharedView] = useState(false);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("sentences");
   const [partIdx, setPartIdx] = useState(0);
@@ -503,27 +448,31 @@ export default function App() {
   const [quizInputs, setQuizInputs] = useState({});
   const [quizChecked, setQuizChecked] = useState({});
   const [repeatCount, setRepeatCount] = useState(3);
+  const [shareState, setShareState] = useState("idle"); // idle | loading | done | error
+  const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const { speak, speaking } = useTTS();
   const { startRepeat, stopRepeat, repeating } = useRepeatTTS();
 
-  useEffect(() => {
+  useEffect(()=>{
     if(typeof window!=="undefined"){
       if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
-
-      // ── 공유 링크 감지 ──
-      const hash = window.location.hash;
-      if(hash.startsWith("#share=")) {
-        const encoded = hash.slice(7);
-        const data = decodeShare(encoded);
-        if(data) {
-          setResult(data);
-          setTitle(data.title||"");
-          setIsSharedView(true);
-          setScreen("result");
-          // 해시 제거 (뒤로가기 UX)
-          window.history.replaceState(null,"",window.location.pathname);
-        }
+      // ── 공유 링크 감지 (?share=id) ──
+      const params = new URLSearchParams(window.location.search);
+      const shareId = params.get("share");
+      if(shareId){
+        window.history.replaceState(null,"",window.location.pathname);
+        fetch(`/api/share?id=${shareId}`)
+          .then(r=>r.json())
+          .then(data=>{
+            if(data.result){
+              setResult(data.result);
+              setTitle(data.result.title||"");
+              setIsSharedView(true);
+              setScreen("result");
+            }
+          })
+          .catch(()=>{});
       }
     }
     setQuoteIdx(Math.floor(Math.random()*QUOTES.length));
@@ -544,11 +493,64 @@ export default function App() {
   const checkQuiz=(k,a)=>setQuizChecked(p=>({...p,[k]:(quizInputs[k]||"").trim().toLowerCase()===a.toLowerCase()?"ok":"no"}));
   const resetQuiz=()=>{setQuizInputs({});setQuizChecked({});};
 
+  // ── 공유 링크 생성 (Supabase 저장) ──
+  const generateShareUrl = async () => {
+    if(shareState==="loading")return;
+    if(shareState==="done"&&shareUrl){
+      // 이미 생성된 링크면 바로 복사
+      navigator.clipboard.writeText(shareUrl).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);});
+      return;
+    }
+    setShareState("loading");
+    try{
+      const res = await fetch("/api/share",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({result})});
+      const data = await res.json();
+      if(data.shareUrl){
+        setShareUrl(data.shareUrl);
+        setShareState("done");
+        navigator.clipboard.writeText(data.shareUrl).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);});
+      } else {
+        setShareState("error");
+      }
+    }catch{
+      setShareState("error");
+    }
+  };
+
+  // ── 카카오 공유 (공유 링크 먼저 생성 후 공유) ──
+  const handleKakaoShare = async () => {
+    if(typeof window==="undefined"||!window.Kakao)return;
+    let url = shareUrl;
+    if(!url){
+      setShareState("loading");
+      try{
+        const res = await fetch("/api/share",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({result})});
+        const data = await res.json();
+        if(data.shareUrl){ url = data.shareUrl; setShareUrl(data.shareUrl); setShareState("done"); }
+        else { setShareState("error"); return; }
+      }catch{ setShareState("error"); return; }
+    }
+    try{
+      if(!window.Kakao.isInitialized())window.Kakao.init(KAKAO_APP_KEY);
+      window.Kakao.Share.sendDefault({
+        objectType:"feed",
+        content:{
+          title:`📖 ${result.title||"Script2Study 교재"}`,
+          description:"영어 스크립트로 만든 AI 학습 교재예요. 해석·표현·쉐도잉·퀴즈까지 한 번에!",
+          imageUrl:`${APP_URL}/icon-512.png`,
+          link:{mobileWebUrl:url,webUrl:url},
+        },
+        buttons:[{title:"교재 바로 보기",link:{mobileWebUrl:url,webUrl:url}}],
+      });
+    }catch(e){console.error("카카오 공유 오류:",e);}
+  };
+
   const generate=async()=>{
     if(!script.trim()){setError("영어 스크립트를 먼저 붙여넣어 주세요.");return;}
     setScreen("loading");setError("");
     setReveals({});setWbInputs({});setWbChecked({});setShowMatch(false);
     setQuizInputs({});setQuizChecked({});stopRepeat();setIsSharedView(false);
+    setShareState("idle");setShareUrl("");setCopied(false);
     try{
       const res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({script,title})});
       if(!res.ok){const d=await res.json();throw new Error(d.error||"오류");}
@@ -561,20 +563,14 @@ export default function App() {
   const openRecent=(item)=>{
     setResult(item.result);setTitle(item.title);setPartIdx(0);setTab("sentences");
     setReveals({});setWbInputs({});setWbChecked({});setShowMatch(false);
-    setQuizInputs({});setQuizChecked({});stopRepeat();setIsSharedView(false);setScreen("result");
+    setQuizInputs({});setQuizChecked({});stopRepeat();setIsSharedView(false);
+    setShareState("idle");setShareUrl("");setCopied(false);setScreen("result");
   };
   const removeRecent=(e,id)=>{e.stopPropagation();setRecentList(deleteRecent(id));};
-  const goInput=()=>{stopRepeat();setScreen("input");setResult(null);setInputView("new");setIsSharedView(false);};
+  const goInput=()=>{stopRepeat();setScreen("input");setResult(null);setInputView("new");setIsSharedView(false);setShareState("idle");setShareUrl("");};
 
-  const TTSBtn=({text,id})=>(
-    <button className={`tts-btn ${speaking===id?"playing":""}`} onClick={()=>speak(text,id)} title="듣기">
-      {speaking===id?"⏹":"🔊"}
-    </button>
-  );
-  const RepeatBtn=({text,id})=>{
-    const isActive=repeating?.id===id;
-    return(<button className={`repeat-btn ${isActive?"rp-active":""}`} onClick={()=>startRepeat(text,id,repeatCount)} title={`${repeatCount}회 반복`}>🔁{isActive&&<span className="rp-badge">{repeating.current}/{repeating.total}</span>}</button>);
-  };
+  const TTSBtn=({text,id})=>(<button className={`tts-btn ${speaking===id?"playing":""}`} onClick={()=>speak(text,id)} title="듣기">{speaking===id?"⏹":"🔊"}</button>);
+  const RepeatBtn=({text,id})=>{const isActive=repeating?.id===id;return(<button className={`repeat-btn ${isActive?"rp-active":""}`} onClick={()=>startRepeat(text,id,repeatCount)} title={`${repeatCount}회 반복`}>🔁{isActive&&<span className="rp-badge">{repeating.current}/{repeating.total}</span>}</button>);};
 
   if(screen==="loading")return(
     <><Head><title>Script2Study</title></Head><style jsx global>{G}</style>
@@ -594,6 +590,8 @@ export default function App() {
     const answeredCount=allExprs.filter(e=>quizChecked[e._key]!==undefined).length;
     const allDone=answeredCount===allExprs.length&&allExprs.length>0;
 
+    const copyBtnLabel = shareState==="loading" ? "⏳ 생성 중..." : copied ? "✅ 복사됨" : shareState==="done" ? "🔗 링크 복사" : "🔗 링크 생성";
+
     const ShareBanner = () => (
       <div className="share-banner">
         <span className="share-banner-text">
@@ -601,9 +599,11 @@ export default function App() {
           링크를 받은 사람이 교재를 바로 볼 수 있어요 😊
         </span>
         <div className="share-banner-btns">
-          <button className="btn-kakao" onClick={()=>shareKakao(result.title,result)}>💬 카카오</button>
-          <button className={`btn-copy ${copied?"copied":""}`} onClick={()=>copyShareLink(result,setCopied)}>
-            {copied?"✅ 복사됨":"🔗 링크 복사"}
+          <button className="btn-kakao" onClick={handleKakaoShare} disabled={shareState==="loading"}>
+            💬 카카오
+          </button>
+          <button className={`btn-copy ${copied?"copied":""}`} onClick={generateShareUrl} disabled={shareState==="loading"}>
+            {copyBtnLabel}
           </button>
         </div>
       </div>
@@ -614,24 +614,18 @@ export default function App() {
         <>
           <div className="sec-eyebrow">Script2Study</div>
           <div className="sec-head">{result.title}</div>
-          {/* 공유로 열린 경우 안내 배너 */}
-          {isSharedView && (
+          {isSharedView&&(
             <div className="shared-notice">
-              📤 공유 받은 교재예요 · 나만의 교재를 만들고 싶다면?
+              📤 공유 받은 교재예요
               <button onClick={goInput} style={{marginLeft:"auto",padding:"4px 10px",fontSize:11,fontWeight:700,fontFamily:"inherit",background:"var(--pink-mid)",color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>
-                새 교재 만들기
+                내 교재 만들기
               </button>
             </div>
           )}
           <ShareBanner/>
           {parts.length>1&&<div className="part-pills">{parts.map((p,i)=><button key={i} className={`part-pill ${partIdx===i?"on":""}`} onClick={()=>setPartIdx(i)}>{p.partTitle||`Part ${i+1}`}</button>)}</div>}
           <div className="card"><div className="sent-list">
-            {(part.sentences||[]).map((s,i)=>(
-              <div key={i} className="sent-row">
-                <div className="sent-text"><div className="sent-en">{s.en}</div><div className="sent-ko">{s.ko}</div></div>
-                <TTSBtn text={s.en} id={`s-${partIdx}-${i}`}/>
-              </div>
-            ))}
+            {(part.sentences||[]).map((s,i)=>(<div key={i} className="sent-row"><div className="sent-text"><div className="sent-en">{s.en}</div><div className="sent-ko">{s.ko}</div></div><TTSBtn text={s.en} id={`s-${partIdx}-${i}`}/></div>))}
           </div></div>
           {part.shadowingSentences?.length>0&&<div className="card"><div className="card-label">🎙 이 파트 쉐도잉</div>{part.shadowingSentences.map((s,i)=><div key={i} className="sh-item"><span className="sh-text">{s}</span><TTSBtn text={s} id={`ss-${partIdx}-${i}`}/></div>)}</div>}
           {part.learningPoints&&<div className="card"><div className="card-label">📌 학습 포인트</div><div className="learn-box">{part.learningPoints}</div></div>}
@@ -641,27 +635,13 @@ export default function App() {
         <><div className="sec-head">핵심 표현</div>
         {parts.length>1&&<div className="part-pills">{parts.map((p,i)=><button key={i} className={`part-pill ${partIdx===i?"on":""}`} onClick={()=>setPartIdx(i)}>{p.partTitle||`Part ${i+1}`}</button>)}</div>}
         <div className="legend-box"><div className="legend-item">⭐ <span>= AI가 선정한 이 파트 핵심 표현</span></div></div>
-        <div className="card">{(part.keyExpressions||[]).map((e,i)=>(
-          <div key={i} className="expr-row">
-            <div className="expr-header"><div className="expr-top"><span className="expr-word">{e.expression}</span>{e.star&&<span style={{fontSize:16}}>⭐</span>}</div><TTSBtn text={e.expression} id={`e-${partIdx}-${i}`}/></div>
-            <div className="expr-mean">{e.meaning}</div><div className="expr-ex">예) {e.example}</div>
-            {e.alternatives?.length>0&&<div className="alt-wrap"><span className="alt-label">유사표현</span>{e.alternatives.map((a,j)=><span key={j} className="alt-chip" onClick={()=>speak(a,`a-${i}-${j}`)}>{a} 🔊</span>)}</div>}
-            {e.examTags?.length>0&&<div className="exam-tags">{e.examTags.map((tag,j)=><span key={j} className={`exam-tag exam-tag-${tag}`}>{tag} 빈출</span>)}</div>}
-          </div>
-        ))}</div>
+        <div className="card">{(part.keyExpressions||[]).map((e,i)=>(<div key={i} className="expr-row"><div className="expr-header"><div className="expr-top"><span className="expr-word">{e.expression}</span>{e.star&&<span style={{fontSize:16}}>⭐</span>}</div><TTSBtn text={e.expression} id={`e-${partIdx}-${i}`}/></div><div className="expr-mean">{e.meaning}</div><div className="expr-ex">예) {e.example}</div>{e.alternatives?.length>0&&<div className="alt-wrap"><span className="alt-label">유사표현</span>{e.alternatives.map((a,j)=><span key={j} className="alt-chip" onClick={()=>speak(a,`a-${i}-${j}`)}>{a} 🔊</span>)}</div>}{e.examTags?.length>0&&<div className="exam-tags">{e.examTags.map((tag,j)=><span key={j} className={`exam-tag exam-tag-${tag}`}>{tag} 빈출</span>)}</div>}</div>))}</div>
         {(part.conversationPoints||[]).length>0&&<div className="card"><div className="card-label">💬 회화 포인트</div>{part.conversationPoints.map((c,i)=><div key={i} className="conv-item">{c}</div>)}</div>}</>
       );
       if(tab==="memory")return(
         <><div className="sec-head">전체 암기장</div>
         <p style={{fontSize:13,color:"var(--ink3)",marginBottom:14}}>회화에서 바로 꺼낼 수 있는 표현만 모았어요 📌</p>
-        <div className="mem-grid">{(result.memoryCards||[]).map((m,i)=>(
-          <div key={i} className="mem-card">
-            <div className="mem-header"><div className="mem-expr">{m.expression}</div><TTSBtn text={m.expression} id={`m-${i}`}/></div>
-            <div className="mem-mean">{m.meaning}</div>
-            {m.alternatives?.length>0&&<div className="mem-alts">{m.alternatives.map((a,j)=><span key={j} className="mem-alt">{a}</span>)}</div>}
-            {m.examTags?.length>0&&<div className="exam-tags" style={{marginTop:6}}>{m.examTags.map((tag,j)=><span key={j} className={`exam-tag exam-tag-${tag}`}>{tag} 빈출</span>)}</div>}
-          </div>
-        ))}</div></>
+        <div className="mem-grid">{(result.memoryCards||[]).map((m,i)=>(<div key={i} className="mem-card"><div className="mem-header"><div className="mem-expr">{m.expression}</div><TTSBtn text={m.expression} id={`m-${i}`}/></div><div className="mem-mean">{m.meaning}</div>{m.alternatives?.length>0&&<div className="mem-alts">{m.alternatives.map((a,j)=><span key={j} className="mem-alt">{a}</span>)}</div>}{m.examTags?.length>0&&<div className="exam-tags" style={{marginTop:6}}>{m.examTags.map((tag,j)=><span key={j} className={`exam-tag exam-tag-${tag}`}>{tag} 빈출</span>)}</div>}</div>))}</div></>
       );
       if(tab==="shadowing")return(
         <>
@@ -672,25 +652,12 @@ export default function App() {
             <div className="sh-repeat-btns">{REPEAT_OPTIONS.map(n=><button key={n} className={`sh-repeat-opt ${repeatCount===n?"on":""}`} onClick={()=>{stopRepeat();setRepeatCount(n);}}>{n}회</button>)}</div>
             {repeating&&<button onClick={stopRepeat} style={{marginLeft:"auto",padding:"4px 10px",fontSize:12,fontWeight:600,fontFamily:"inherit",background:"var(--red-light)",border:"none",borderRadius:6,color:"var(--red)",cursor:"pointer"}}>⏹ 정지</button>}
           </div>
-          {(result.shadowingTraining||[]).map((pt,i)=>(
-            <div key={i} className="day-card">
-              <div className="day-hd">{pt.partTitle||`Part ${pt.partNumber}`}</div>
-              {(pt.sentences||[]).map((s,j)=>{const id=`d-${i}-${j}`;return(<div key={j} className="day-row"><span className="day-num">{j+1}</span><span className="day-txt">{s}</span><div className="day-btns"><TTSBtn text={s} id={`tts-${id}`}/><RepeatBtn text={s} id={id}/></div></div>);})}
-            </div>
-          ))}
+          {(result.shadowingTraining||[]).map((pt,i)=>(<div key={i} className="day-card"><div className="day-hd">{pt.partTitle||`Part ${pt.partNumber}`}</div>{(pt.sentences||[]).map((s,j)=>{const id=`d-${i}-${j}`;return(<div key={j} className="day-row"><span className="day-num">{j+1}</span><span className="day-txt">{s}</span><div className="day-btns"><TTSBtn text={s} id={`tts-${id}`}/><RepeatBtn text={s} id={id}/></div></div>);})}</div>))}
         </>
       );
       if(tab==="quiz"){
         if(allExprs.length===0)return(<><div className="sec-head">표현 퀴즈</div><div className="recent-empty"><div className="recent-empty-icon">💡</div>퀴즈를 만들 표현이 없어요.</div></>);
-        return(
-          <>
-            <div className="sec-head">표현 퀴즈</div>
-            <p className="quiz-info">뜻과 예문을 보고 영어 표현을 맞혀보세요 ✏️</p>
-            <div className="quiz-score"><span className="quiz-score-num">{correctCount}</span><span>/ {allExprs.length} 정답</span><button className="quiz-reset" onClick={resetQuiz}>다시 풀기</button></div>
-            {allDone&&(<div className="quiz-all-done"><div className="quiz-all-done-icon">{correctCount===allExprs.length?"🎉":"💪"}</div><div className="quiz-all-done-title">{correctCount===allExprs.length?"완벽해요!":`${correctCount}/${allExprs.length} 맞혔어요`}</div><div className="quiz-all-done-sub">{correctCount===allExprs.length?"모든 표현을 맞혔어요. 대단해요!":"틀린 표현은 다시 풀어보세요."}</div><button className="quiz-retry-btn" onClick={resetQuiz}>다시 풀기</button></div>)}
-            {allExprs.map(e=>{const k=e._key;const checked=quizChecked[k];return(<div key={k} className={`quiz-card ${checked==="ok"?"qz-ok":checked==="no"?"qz-no":""}`}><div className="quiz-num">Q{allExprs.indexOf(e)+1} · Part {e._pi+1}</div><div className="quiz-hint-meaning">{e.meaning}</div><div className="quiz-hint-ex">예) {e.example}</div><div className="quiz-input-row"><input className={`quiz-input ${checked==="ok"?"qz-ok":checked==="no"?"qz-no":""}`} placeholder="영어 표현을 입력하세요..." value={quizInputs[k]||""} onChange={ev=>setQuizInput(k,ev.target.value)} onKeyDown={ev=>ev.key==="Enter"&&!checked&&checkQuiz(k,e.expression)} disabled={!!checked}/><button className="quiz-submit" onClick={()=>checkQuiz(k,e.expression)} disabled={!!checked||!(quizInputs[k]||"").trim()}>확인</button></div>{checked&&(<><div className={`quiz-feedback ${checked}`}>{checked==="ok"?"✅ 정답이에요!":"❌ 오답이에요."}</div>{checked==="no"&&<div className="quiz-answer">정답: {e.expression}</div>}</>)}</div>);})}
-          </>
-        );
+        return(<><div className="sec-head">표현 퀴즈</div><p className="quiz-info">뜻과 예문을 보고 영어 표현을 맞혀보세요 ✏️</p><div className="quiz-score"><span className="quiz-score-num">{correctCount}</span><span>/ {allExprs.length} 정답</span><button className="quiz-reset" onClick={resetQuiz}>다시 풀기</button></div>{allDone&&(<div className="quiz-all-done"><div className="quiz-all-done-icon">{correctCount===allExprs.length?"🎉":"💪"}</div><div className="quiz-all-done-title">{correctCount===allExprs.length?"완벽해요!":`${correctCount}/${allExprs.length} 맞혔어요`}</div><div className="quiz-all-done-sub">{correctCount===allExprs.length?"모든 표현을 맞혔어요. 대단해요!":"틀린 표현은 다시 풀어보세요."}</div><button className="quiz-retry-btn" onClick={resetQuiz}>다시 풀기</button></div>)}{allExprs.map(e=>{const k=e._key;const checked=quizChecked[k];return(<div key={k} className={`quiz-card ${checked==="ok"?"qz-ok":checked==="no"?"qz-no":""}`}><div className="quiz-num">Q{allExprs.indexOf(e)+1} · Part {e._pi+1}</div><div className="quiz-hint-meaning">{e.meaning}</div><div className="quiz-hint-ex">예) {e.example}</div><div className="quiz-input-row"><input className={`quiz-input ${checked==="ok"?"qz-ok":checked==="no"?"qz-no":""}`} placeholder="영어 표현을 입력하세요..." value={quizInputs[k]||""} onChange={ev=>setQuizInput(k,ev.target.value)} onKeyDown={ev=>ev.key==="Enter"&&!checked&&checkQuiz(k,e.expression)} disabled={!!checked}/><button className="quiz-submit" onClick={()=>checkQuiz(k,e.expression)} disabled={!!checked||!(quizInputs[k]||"").trim()}>확인</button></div>{checked&&(<><div className={`quiz-feedback ${checked}`}>{checked==="ok"?"✅ 정답이에요!":"❌ 오답이에요."}</div>{checked==="no"&&<div className="quiz-answer">정답: {e.expression}</div>}</>)}</div>);})}</>);
       }
       if(tab==="workbook")return(
         <>
@@ -714,9 +681,9 @@ export default function App() {
           <div className="dot dot-r"/><div className="dot dot-y"/><div className="dot dot-g"/>
           <div className="res-titlebar-name">Script2Study</div>
           <div className="res-header-btns">
-            <button className="btn-xs btn-xs-kakao" onClick={()=>shareKakao(result.title,result)}>💬</button>
-            <button className={`btn-xs ${copied?"btn-xs-ghost":"btn-xs-ghost"}`} onClick={()=>copyShareLink(result,setCopied)} style={copied?{color:"var(--green)"}:{}}>
-              {copied?"✅":"🔗"}
+            <button className="btn-xs btn-xs-kakao" onClick={handleKakaoShare} disabled={shareState==="loading"}>💬</button>
+            <button className={`btn-xs btn-xs-ghost`} onClick={generateShareUrl} disabled={shareState==="loading"} style={copied?{color:"var(--green)"}:{}}>
+              {shareState==="loading"?"⏳":copied?"✅":"🔗"}
             </button>
             <button className="btn-xs btn-xs-pink" onClick={()=>downloadHTML(result,true)}>↓ 정답</button>
             <button className="btn-xs btn-xs-blue" onClick={()=>downloadHTML(result,false)}>↓ 문제</button>
@@ -725,10 +692,7 @@ export default function App() {
         </div>
         <div className="mob-tabs">{TABS.map(t=><button key={t.id} className={`mob-tab ${tab===t.id?"on":""}`} onClick={()=>setTab(t.id)}>{t.icon} {t.label}</button>)}</div>
         <div className="res-body">
-          <div className="res-sidebar">
-            <div className="res-sb-title">교재</div>
-            {TABS.map(item=><div key={item.id} className={`res-sb-item ${tab===item.id?"on":""}`} onClick={()=>setTab(item.id)}><span className="res-sb-icon">{item.icon}</span>{item.label}</div>)}
-          </div>
+          <div className="res-sidebar"><div className="res-sb-title">교재</div>{TABS.map(item=><div key={item.id} className={`res-sb-item ${tab===item.id?"on":""}`} onClick={()=>setTab(item.id)}><span className="res-sb-icon">{item.icon}</span>{item.label}</div>)}</div>
           <div className="res-main">{renderContent()}</div>
         </div>
         <div className="app-footer"><span>Script2Study {VERSION}</span>·<span>{COPYRIGHT}</span></div>
