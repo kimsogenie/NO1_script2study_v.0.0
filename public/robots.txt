@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://no-1-script2study-v-0-0.vercel.app/sitemap.xml
