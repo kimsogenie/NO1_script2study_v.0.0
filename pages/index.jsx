@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Head from "next/head";
 
-const VERSION = "v0.9.7";
+const VERSION = "v0.9.8";
 const COPYRIGHT = `© 2026 kimsogenie. All rights reserved.`;
 const MAX_RECENT = 5;
 
@@ -28,6 +28,13 @@ const QUOTES = [
   { ko: "예술은 비싸고 인생은 더럽다." },
   { ko: "고생 끝에 낙이 오는 게 아니라, 고생 끝에 골병 난다." },
   { ko: "세상은 넓고 할 일은 많지 않다. 할 일은 정해져 있다." },
+];
+
+// 온보딩 단계
+const ONBOARDING_STEPS = [
+  { icon: "📝", title: "스크립트 붙여넣기", desc: "좋아하는 영어 유튜브, 팟캐스트, 드라마 대본을 그대로 붙여넣으면 돼요." },
+  { icon: "⚡", title: "AI가 교재 자동 생성", desc: "해석, 핵심 표현, 암기장, 쉐도잉, 퀴즈, 워크북까지 한 번에 만들어드려요." },
+  { icon: "📤", title: "공유하고 다운로드", desc: "카카오 공유 링크로 친구에게 보내거나, 파일로 저장해서 오프라인에서도 공부해요." },
 ];
 
 function useTTS() {
@@ -115,6 +122,36 @@ const G = `
 html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;
   background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
 
+/* ── 온보딩 모달 ── */
+.ob-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);
+  display:flex;align-items:center;justify-content:center;
+  z-index:1000;padding:20px;animation:fadeIn .2s ease;
+}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.ob-modal{
+  background:var(--win);border-radius:20px;padding:32px 28px;
+  max-width:380px;width:100%;box-shadow:var(--shadow);
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.ob-logo{font-size:13px;font-weight:700;color:var(--pink-mid);margin-bottom:6px;letter-spacing:.05em;}
+.ob-title{font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-.03em;margin-bottom:6px;}
+.ob-sub{font-size:13px;color:var(--ink3);margin-bottom:24px;line-height:1.6;}
+.ob-steps{display:flex;flex-direction:column;gap:14px;margin-bottom:28px;}
+.ob-step{display:flex;align-items:flex-start;gap:13px;padding:13px 14px;background:var(--panel);border-radius:12px;}
+.ob-step-icon{font-size:22px;flex-shrink:0;margin-top:1px;}
+.ob-step-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+.ob-step-desc{font-size:12px;color:var(--ink3);line-height:1.5;}
+.ob-btn{
+  width:100%;padding:14px;background:var(--pink-mid);color:#fff;border:none;
+  border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;
+  cursor:pointer;transition:opacity .15s;box-shadow:0 2px 8px rgba(212,132,154,.4);
+}
+.ob-btn:hover{opacity:.88;}
+.ob-skip{display:block;text-align:center;margin-top:12px;font-size:12px;color:var(--ink4);cursor:pointer;background:none;border:none;font-family:inherit;}
+.ob-skip:hover{color:var(--ink3);}
+
 .input-screen{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:32px 20px;background:var(--bg);}
 @media(max-width:600px){.input-screen{padding:16px 12px;}}
 .finder-window{width:100%;max-width:640px;background:var(--win);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;border:1px solid rgba(255,255,255,0.9);}
@@ -165,8 +202,15 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 @media(max-width:600px){.mob-view-bar{display:flex;}}
 .mob-view-btn{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;border:1.5px solid var(--sidebar-border);background:var(--win);color:var(--ink2);cursor:pointer;transition:all .15s;}
 .mob-view-btn.active{background:var(--pink-light);border-color:var(--pink-mid);color:var(--pink-mid);}
-.recent-empty{text-align:center;padding:48px 20px;color:var(--ink3);font-size:14px;line-height:1.8;}
-.recent-empty-icon{font-size:40px;margin-bottom:12px;}
+
+/* ── 빈 상태 개선 ── */
+.empty-state{text-align:center;padding:40px 20px;}
+.empty-state-icon{font-size:44px;margin-bottom:14px;}
+.empty-state-title{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+.empty-state-desc{font-size:13px;color:var(--ink3);line-height:1.7;margin-bottom:18px;}
+.empty-state-btn{padding:10px 22px;background:var(--pink-mid);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .15s;}
+.empty-state-btn:hover{opacity:.85;}
+
 .recent-card{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--win);border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow-sm);margin-bottom:9px;cursor:pointer;transition:box-shadow .15s,transform .15s;}
 .recent-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-1px);}
 .recent-card-icon{font-size:28px;flex-shrink:0;}
@@ -198,7 +242,6 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .btn-xs-pink{background:var(--pink-mid);color:#fff;}.btn-xs-pink:hover{opacity:.85;}
 .btn-xs-ghost{background:rgba(0,0,0,.07);color:var(--ink2);}.btn-xs-ghost:hover{background:rgba(0,0,0,.11);}
 .btn-xs-kakao{background:var(--kakao);color:var(--kakao-ink);}.btn-xs-kakao:hover{opacity:.88;}
-
 .mob-tabs{display:none;background:var(--sidebar);border-bottom:1px solid var(--sidebar-border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;}
 .mob-tabs::-webkit-scrollbar{display:none;}
 @media(max-width:700px){.mob-tabs{display:flex;}}
@@ -329,7 +372,6 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .quiz-retry-btn{padding:11px 24px;background:var(--pink-mid);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;}
 .quiz-retry-btn:hover{opacity:.85;}
 
-/* ── 공유 배너 ── */
 .share-banner{display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--panel);border-radius:12px;margin-bottom:18px;border:1px solid var(--sidebar-border);}
 .share-banner-text{flex:1;font-size:13px;color:var(--ink3);line-height:1.5;}
 .share-banner-text strong{color:var(--ink);font-weight:700;}
@@ -341,8 +383,6 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .btn-copy:hover{border-color:var(--pink-mid);color:var(--pink-mid);}
 .btn-copy.copied{border-color:var(--green);color:var(--green);}
 .btn-copy:disabled{opacity:.5;cursor:not-allowed;}
-
-/* ── 공유받은 교재 안내 ── */
 .shared-notice{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--pink-light);border-radius:10px;margin-bottom:16px;border:1px solid var(--pink);font-size:13px;color:var(--pink-mid);font-weight:600;}
 
 .conv-item{padding:10px 13px;background:var(--pink-light);border-radius:8px;border-left:3px solid var(--pink);font-size:14px;color:var(--ink2);line-height:1.7;margin-bottom:7px;}
@@ -409,6 +449,7 @@ const SCRIPT_METHODS = [
 const REPEAT_OPTIONS = [1,2,3,5];
 
 const LS_KEY = "s2s_recent";
+const LS_ONBOARD = "s2s_onboarded";
 function loadRecent(){if(typeof window==="undefined")return[];try{return JSON.parse(localStorage.getItem(LS_KEY)||"[]");}catch{return[];}}
 function saveRecent(titleStr,result){const item={id:Date.now(),title:titleStr||result.title||"제목 없음",savedAt:new Date().toISOString(),result};const updated=[item,...loadRecent().filter(p=>p.title!==item.title)].slice(0,MAX_RECENT);try{localStorage.setItem(LS_KEY,JSON.stringify(updated));}catch{}return updated;}
 function deleteRecent(id){const u=loadRecent().filter(p=>p.id!==id);try{localStorage.setItem(LS_KEY,JSON.stringify(u));}catch{}return u;}
@@ -432,6 +473,7 @@ export default function App() {
   const [screen, setScreen] = useState("input");
   const [inputView, setInputView] = useState("new");
   const [recentList, setRecentList] = useState([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [script, setScript] = useState("");
   const [title, setTitle] = useState("");
   const [result, setResult] = useState(null);
@@ -448,7 +490,7 @@ export default function App() {
   const [quizInputs, setQuizInputs] = useState({});
   const [quizChecked, setQuizChecked] = useState({});
   const [repeatCount, setRepeatCount] = useState(3);
-  const [shareState, setShareState] = useState("idle"); // idle | loading | done | error
+  const [shareState, setShareState] = useState("idle");
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const { speak, speaking } = useTTS();
@@ -457,23 +499,21 @@ export default function App() {
   useEffect(()=>{
     if(typeof window!=="undefined"){
       if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
-      // ── 공유 링크 감지 (?share=id) ──
+
+      // 공유 링크 감지
       const params = new URLSearchParams(window.location.search);
       const shareId = params.get("share");
       if(shareId){
         window.history.replaceState(null,"",window.location.pathname);
-        fetch(`/api/share?id=${shareId}`)
-          .then(r=>r.json())
-          .then(data=>{
-            if(data.result){
-              setResult(data.result);
-              setTitle(data.result.title||"");
-              setIsSharedView(true);
-              setScreen("result");
-            }
-          })
-          .catch(()=>{});
+        fetch(`/api/share?id=${shareId}`).then(r=>r.json()).then(data=>{
+          if(data.result){setResult(data.result);setTitle(data.result.title||"");setIsSharedView(true);setScreen("result");}
+        }).catch(()=>{});
+        return; // 공유 링크로 열리면 온보딩 표시 안 함
       }
+
+      // 온보딩: 처음 방문자에게만 표시
+      const onboarded = localStorage.getItem(LS_ONBOARD);
+      if(!onboarded) setShowOnboarding(true);
     }
     setQuoteIdx(Math.floor(Math.random()*QUOTES.length));
     setRecentList(loadRecent());
@@ -485,6 +525,11 @@ export default function App() {
     return()=>clearInterval(t);
   },[screen]);
 
+  const closeOnboarding = () => {
+    setShowOnboarding(false);
+    try{ localStorage.setItem(LS_ONBOARD,"1"); }catch{}
+  };
+
   const reveal=(k)=>setReveals(p=>({...p,[k]:true}));
   const unrevel=(k)=>setReveals(p=>({...p,[k]:false}));
   const setWbInput=(k,v)=>setWbInputs(p=>({...p,[k]:v}));
@@ -493,53 +538,35 @@ export default function App() {
   const checkQuiz=(k,a)=>setQuizChecked(p=>({...p,[k]:(quizInputs[k]||"").trim().toLowerCase()===a.toLowerCase()?"ok":"no"}));
   const resetQuiz=()=>{setQuizInputs({});setQuizChecked({});};
 
-  // ── 공유 링크 생성 (Supabase 저장) ──
   const generateShareUrl = async () => {
     if(shareState==="loading")return;
-    if(shareState==="done"&&shareUrl){
-      // 이미 생성된 링크면 바로 복사
-      navigator.clipboard.writeText(shareUrl).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);});
-      return;
-    }
+    if(shareState==="done"&&shareUrl){ navigator.clipboard.writeText(shareUrl).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);}); return; }
     setShareState("loading");
     try{
-      const res = await fetch("/api/share",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({result})});
-      const data = await res.json();
-      if(data.shareUrl){
-        setShareUrl(data.shareUrl);
-        setShareState("done");
-        navigator.clipboard.writeText(data.shareUrl).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);});
-      } else {
-        setShareState("error");
-      }
-    }catch{
-      setShareState("error");
-    }
+      const res=await fetch("/api/share",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({result})});
+      const data=await res.json();
+      if(data.shareUrl){setShareUrl(data.shareUrl);setShareState("done");navigator.clipboard.writeText(data.shareUrl).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);});}
+      else setShareState("error");
+    }catch{setShareState("error");}
   };
 
-  // ── 카카오 공유 (공유 링크 먼저 생성 후 공유) ──
   const handleKakaoShare = async () => {
     if(typeof window==="undefined"||!window.Kakao)return;
     let url = shareUrl;
     if(!url){
       setShareState("loading");
       try{
-        const res = await fetch("/api/share",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({result})});
-        const data = await res.json();
-        if(data.shareUrl){ url = data.shareUrl; setShareUrl(data.shareUrl); setShareState("done"); }
-        else { setShareState("error"); return; }
-      }catch{ setShareState("error"); return; }
+        const res=await fetch("/api/share",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({result})});
+        const data=await res.json();
+        if(data.shareUrl){url=data.shareUrl;setShareUrl(data.shareUrl);setShareState("done");}
+        else{setShareState("error");return;}
+      }catch{setShareState("error");return;}
     }
     try{
       if(!window.Kakao.isInitialized())window.Kakao.init(KAKAO_APP_KEY);
       window.Kakao.Share.sendDefault({
         objectType:"feed",
-        content:{
-          title:`📖 ${result.title||"Script2Study 교재"}`,
-          description:"영어 스크립트로 만든 AI 학습 교재예요. 해석·표현·쉐도잉·퀴즈까지 한 번에!",
-          imageUrl:`${APP_URL}/icon-512.png`,
-          link:{mobileWebUrl:url,webUrl:url},
-        },
+        content:{title:`📖 ${result.title||"Script2Study 교재"}`,description:"영어 스크립트로 만든 AI 학습 교재예요. 해석·표현·쉐도잉·퀴즈까지 한 번에!",imageUrl:`${APP_URL}/icon-512.png`,link:{mobileWebUrl:url,webUrl:url}},
         buttons:[{title:"교재 바로 보기",link:{mobileWebUrl:url,webUrl:url}}],
       });
     }catch(e){console.error("카카오 공유 오류:",e);}
@@ -572,6 +599,27 @@ export default function App() {
   const TTSBtn=({text,id})=>(<button className={`tts-btn ${speaking===id?"playing":""}`} onClick={()=>speak(text,id)} title="듣기">{speaking===id?"⏹":"🔊"}</button>);
   const RepeatBtn=({text,id})=>{const isActive=repeating?.id===id;return(<button className={`repeat-btn ${isActive?"rp-active":""}`} onClick={()=>startRepeat(text,id,repeatCount)} title={`${repeatCount}회 반복`}>🔁{isActive&&<span className="rp-badge">{repeating.current}/{repeating.total}</span>}</button>);};
 
+  // ── 온보딩 모달 ──
+  const OnboardingModal = () => (
+    <div className="ob-overlay" onClick={closeOnboarding}>
+      <div className="ob-modal" onClick={e=>e.stopPropagation()}>
+        <div className="ob-logo">SCRIPT2STUDY</div>
+        <div className="ob-title">영어 공부,<br/>이제 좋아하는 걸로</div>
+        <div className="ob-sub">팟캐스트, 유튜브, 드라마 대본 한 번 붙여넣으면<br/>나만의 교재가 뚝딱 만들어져요.</div>
+        <div className="ob-steps">
+          {ONBOARDING_STEPS.map((s,i)=>(
+            <div key={i} className="ob-step">
+              <div className="ob-step-icon">{s.icon}</div>
+              <div><div className="ob-step-title">{s.title}</div><div className="ob-step-desc">{s.desc}</div></div>
+            </div>
+          ))}
+        </div>
+        <button className="ob-btn" onClick={closeOnboarding}>시작하기 →</button>
+        <button className="ob-skip" onClick={closeOnboarding}>다음에 볼게요</button>
+      </div>
+    </div>
+  );
+
   if(screen==="loading")return(
     <><Head><title>Script2Study</title></Head><style jsx global>{G}</style>
     <div className="load-screen">
@@ -589,22 +637,14 @@ export default function App() {
     const correctCount=allExprs.filter(e=>quizChecked[e._key]==="ok").length;
     const answeredCount=allExprs.filter(e=>quizChecked[e._key]!==undefined).length;
     const allDone=answeredCount===allExprs.length&&allExprs.length>0;
+    const copyBtnLabel=shareState==="loading"?"⏳ 생성 중...":copied?"✅ 복사됨":shareState==="done"?"🔗 링크 복사":"🔗 링크 생성";
 
-    const copyBtnLabel = shareState==="loading" ? "⏳ 생성 중..." : copied ? "✅ 복사됨" : shareState==="done" ? "🔗 링크 복사" : "🔗 링크 생성";
-
-    const ShareBanner = () => (
+    const ShareBanner=()=>(
       <div className="share-banner">
-        <span className="share-banner-text">
-          <strong>이 교재 공유하기</strong><br/>
-          링크를 받은 사람이 교재를 바로 볼 수 있어요 😊
-        </span>
+        <span className="share-banner-text"><strong>이 교재 공유하기</strong><br/>링크를 받은 사람이 교재를 바로 볼 수 있어요 😊</span>
         <div className="share-banner-btns">
-          <button className="btn-kakao" onClick={handleKakaoShare} disabled={shareState==="loading"}>
-            💬 카카오
-          </button>
-          <button className={`btn-copy ${copied?"copied":""}`} onClick={generateShareUrl} disabled={shareState==="loading"}>
-            {copyBtnLabel}
-          </button>
+          <button className="btn-kakao" onClick={handleKakaoShare} disabled={shareState==="loading"}>💬 카카오</button>
+          <button className={`btn-copy ${copied?"copied":""}`} onClick={generateShareUrl} disabled={shareState==="loading"}>{copyBtnLabel}</button>
         </div>
       </div>
     );
@@ -614,19 +654,10 @@ export default function App() {
         <>
           <div className="sec-eyebrow">Script2Study</div>
           <div className="sec-head">{result.title}</div>
-          {isSharedView&&(
-            <div className="shared-notice">
-              📤 공유 받은 교재예요
-              <button onClick={goInput} style={{marginLeft:"auto",padding:"4px 10px",fontSize:11,fontWeight:700,fontFamily:"inherit",background:"var(--pink-mid)",color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>
-                내 교재 만들기
-              </button>
-            </div>
-          )}
+          {isSharedView&&(<div className="shared-notice">📤 공유 받은 교재예요<button onClick={goInput} style={{marginLeft:"auto",padding:"4px 10px",fontSize:11,fontWeight:700,fontFamily:"inherit",background:"var(--pink-mid)",color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>내 교재 만들기</button></div>)}
           <ShareBanner/>
           {parts.length>1&&<div className="part-pills">{parts.map((p,i)=><button key={i} className={`part-pill ${partIdx===i?"on":""}`} onClick={()=>setPartIdx(i)}>{p.partTitle||`Part ${i+1}`}</button>)}</div>}
-          <div className="card"><div className="sent-list">
-            {(part.sentences||[]).map((s,i)=>(<div key={i} className="sent-row"><div className="sent-text"><div className="sent-en">{s.en}</div><div className="sent-ko">{s.ko}</div></div><TTSBtn text={s.en} id={`s-${partIdx}-${i}`}/></div>))}
-          </div></div>
+          <div className="card"><div className="sent-list">{(part.sentences||[]).map((s,i)=>(<div key={i} className="sent-row"><div className="sent-text"><div className="sent-en">{s.en}</div><div className="sent-ko">{s.ko}</div></div><TTSBtn text={s.en} id={`s-${partIdx}-${i}`}/></div>))}</div></div>
           {part.shadowingSentences?.length>0&&<div className="card"><div className="card-label">🎙 이 파트 쉐도잉</div>{part.shadowingSentences.map((s,i)=><div key={i} className="sh-item"><span className="sh-text">{s}</span><TTSBtn text={s} id={`ss-${partIdx}-${i}`}/></div>)}</div>}
           {part.learningPoints&&<div className="card"><div className="card-label">📌 학습 포인트</div><div className="learn-box">{part.learningPoints}</div></div>}
         </>
@@ -641,6 +672,7 @@ export default function App() {
       if(tab==="memory")return(
         <><div className="sec-head">전체 암기장</div>
         <p style={{fontSize:13,color:"var(--ink3)",marginBottom:14}}>회화에서 바로 꺼낼 수 있는 표현만 모았어요 📌</p>
+        {result.memoryCards?.length===0&&<div className="empty-state"><div className="empty-state-icon">🧠</div><div className="empty-state-title">암기 카드가 없어요</div><div className="empty-state-desc">교재 생성 시 핵심 표현이 없으면<br/>암기장이 비어있을 수 있어요.</div></div>}
         <div className="mem-grid">{(result.memoryCards||[]).map((m,i)=>(<div key={i} className="mem-card"><div className="mem-header"><div className="mem-expr">{m.expression}</div><TTSBtn text={m.expression} id={`m-${i}`}/></div><div className="mem-mean">{m.meaning}</div>{m.alternatives?.length>0&&<div className="mem-alts">{m.alternatives.map((a,j)=><span key={j} className="mem-alt">{a}</span>)}</div>}{m.examTags?.length>0&&<div className="exam-tags" style={{marginTop:6}}>{m.examTags.map((tag,j)=><span key={j} className={`exam-tag exam-tag-${tag}`}>{tag} 빈출</span>)}</div>}</div>))}</div></>
       );
       if(tab==="shadowing")return(
@@ -652,11 +684,15 @@ export default function App() {
             <div className="sh-repeat-btns">{REPEAT_OPTIONS.map(n=><button key={n} className={`sh-repeat-opt ${repeatCount===n?"on":""}`} onClick={()=>{stopRepeat();setRepeatCount(n);}}>{n}회</button>)}</div>
             {repeating&&<button onClick={stopRepeat} style={{marginLeft:"auto",padding:"4px 10px",fontSize:12,fontWeight:600,fontFamily:"inherit",background:"var(--red-light)",border:"none",borderRadius:6,color:"var(--red)",cursor:"pointer"}}>⏹ 정지</button>}
           </div>
+          {(result.shadowingTraining||[]).length===0&&<div className="empty-state"><div className="empty-state-icon">🎙</div><div className="empty-state-title">쉐도잉 문장이 없어요</div><div className="empty-state-desc">교재를 다시 생성해보세요.</div></div>}
           {(result.shadowingTraining||[]).map((pt,i)=>(<div key={i} className="day-card"><div className="day-hd">{pt.partTitle||`Part ${pt.partNumber}`}</div>{(pt.sentences||[]).map((s,j)=>{const id=`d-${i}-${j}`;return(<div key={j} className="day-row"><span className="day-num">{j+1}</span><span className="day-txt">{s}</span><div className="day-btns"><TTSBtn text={s} id={`tts-${id}`}/><RepeatBtn text={s} id={id}/></div></div>);})}</div>))}
         </>
       );
       if(tab==="quiz"){
-        if(allExprs.length===0)return(<><div className="sec-head">표현 퀴즈</div><div className="recent-empty"><div className="recent-empty-icon">💡</div>퀴즈를 만들 표현이 없어요.</div></>);
+        if(allExprs.length===0)return(
+          <><div className="sec-head">표현 퀴즈</div>
+          <div className="empty-state"><div className="empty-state-icon">❓</div><div className="empty-state-title">퀴즈를 만들 표현이 없어요</div><div className="empty-state-desc">표현 탭에서 핵심 표현이 생성되면<br/>자동으로 퀴즈가 만들어져요.</div><button className="empty-state-btn" onClick={()=>setTab("sentences")}>해석 탭으로 가기</button></div></>
+        );
         return(<><div className="sec-head">표현 퀴즈</div><p className="quiz-info">뜻과 예문을 보고 영어 표현을 맞혀보세요 ✏️</p><div className="quiz-score"><span className="quiz-score-num">{correctCount}</span><span>/ {allExprs.length} 정답</span><button className="quiz-reset" onClick={resetQuiz}>다시 풀기</button></div>{allDone&&(<div className="quiz-all-done"><div className="quiz-all-done-icon">{correctCount===allExprs.length?"🎉":"💪"}</div><div className="quiz-all-done-title">{correctCount===allExprs.length?"완벽해요!":`${correctCount}/${allExprs.length} 맞혔어요`}</div><div className="quiz-all-done-sub">{correctCount===allExprs.length?"모든 표현을 맞혔어요. 대단해요!":"틀린 표현은 다시 풀어보세요."}</div><button className="quiz-retry-btn" onClick={resetQuiz}>다시 풀기</button></div>)}{allExprs.map(e=>{const k=e._key;const checked=quizChecked[k];return(<div key={k} className={`quiz-card ${checked==="ok"?"qz-ok":checked==="no"?"qz-no":""}`}><div className="quiz-num">Q{allExprs.indexOf(e)+1} · Part {e._pi+1}</div><div className="quiz-hint-meaning">{e.meaning}</div><div className="quiz-hint-ex">예) {e.example}</div><div className="quiz-input-row"><input className={`quiz-input ${checked==="ok"?"qz-ok":checked==="no"?"qz-no":""}`} placeholder="영어 표현을 입력하세요..." value={quizInputs[k]||""} onChange={ev=>setQuizInput(k,ev.target.value)} onKeyDown={ev=>ev.key==="Enter"&&!checked&&checkQuiz(k,e.expression)} disabled={!!checked}/><button className="quiz-submit" onClick={()=>checkQuiz(k,e.expression)} disabled={!!checked||!(quizInputs[k]||"").trim()}>확인</button></div>{checked&&(<><div className={`quiz-feedback ${checked}`}>{checked==="ok"?"✅ 정답이에요!":"❌ 오답이에요."}</div>{checked==="no"&&<div className="quiz-answer">정답: {e.expression}</div>}</>)}</div>);})}</>);
       }
       if(tab==="workbook")return(
@@ -682,9 +718,7 @@ export default function App() {
           <div className="res-titlebar-name">Script2Study</div>
           <div className="res-header-btns">
             <button className="btn-xs btn-xs-kakao" onClick={handleKakaoShare} disabled={shareState==="loading"}>💬</button>
-            <button className={`btn-xs btn-xs-ghost`} onClick={generateShareUrl} disabled={shareState==="loading"} style={copied?{color:"var(--green)"}:{}}>
-              {shareState==="loading"?"⏳":copied?"✅":"🔗"}
-            </button>
+            <button className="btn-xs btn-xs-ghost" onClick={generateShareUrl} disabled={shareState==="loading"} style={copied?{color:"var(--green)"}:{}}>{shareState==="loading"?"⏳":copied?"✅":"🔗"}</button>
             <button className="btn-xs btn-xs-pink" onClick={()=>downloadHTML(result,true)}>↓ 정답</button>
             <button className="btn-xs btn-xs-blue" onClick={()=>downloadHTML(result,false)}>↓ 문제</button>
             <button className="btn-xs btn-xs-ghost" onClick={goInput}>새 교재</button>
@@ -703,8 +737,15 @@ export default function App() {
   const renderMainPanel=()=>{
     if(inputView==="recent")return(
       <><div className="main-eyebrow">Script2Study</div><div className="main-title">최근 교재</div>
-      {recentList.length===0?<div className="recent-empty"><div className="recent-empty-icon">📂</div>아직 저장된 교재가 없어요.<br/>교재를 생성하면 여기에 자동으로 저장돼요.</div>
-      :recentList.map(item=>(<div key={item.id} className="recent-card" onClick={()=>openRecent(item)}><div className="recent-card-icon">📄</div><div className="recent-card-body"><div className="recent-card-title">{item.title}</div><div className="recent-card-meta">{formatDate(item.savedAt)} 저장</div></div><button className="recent-card-del" onClick={e=>removeRecent(e,item.id)} title="삭제">🗑</button></div>))}</>
+      {recentList.length===0
+        ?<div className="empty-state">
+          <div className="empty-state-icon">📂</div>
+          <div className="empty-state-title">아직 만든 교재가 없어요</div>
+          <div className="empty-state-desc">영어 스크립트를 붙여넣으면<br/>나만의 교재가 자동으로 저장돼요.</div>
+          <button className="empty-state-btn" onClick={()=>setInputView("new")}>첫 교재 만들기 →</button>
+        </div>
+        :recentList.map(item=>(<div key={item.id} className="recent-card" onClick={()=>openRecent(item)}><div className="recent-card-icon">📄</div><div className="recent-card-body"><div className="recent-card-title">{item.title}</div><div className="recent-card-meta">{formatDate(item.savedAt)} 저장</div></div><button className="recent-card-del" onClick={e=>removeRecent(e,item.id)} title="삭제">🗑</button></div>))
+      }</>
     );
     return(
       <><div className="main-eyebrow">Script2Study</div><div className="main-title">새 교재 만들기</div>
@@ -724,7 +765,8 @@ export default function App() {
   };
 
   return(
-    <><Head><title>Script2Study</title></Head><style jsx global>{G}</style>
+    <><Head><title>Script2Study — AI 영어 교재 자동 생성기</title></Head><style jsx global>{G}</style>
+    {showOnboarding&&<OnboardingModal/>}
     <div className="input-screen"><div className="finder-window">
       <div className="titlebar"><div className="dot dot-r"/><div className="dot dot-y"/><div className="dot dot-g"/><div className="titlebar-name">Script2Study</div></div>
       <div className="finder-body">
