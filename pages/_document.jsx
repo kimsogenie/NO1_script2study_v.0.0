@@ -30,14 +30,17 @@ export default function Document() {
 
         {/* ── SEO 기본 ── */}
         <meta name="description" content="영어 스크립트를 붙여넣으면 문장 해석, 핵심 표현, 암기장, 쉐도잉, 워크북까지 자동으로 만들어주는 AI 영어 학습 교재 생성기" />
-        <meta name="keywords" content="영어 공부, 영어 스크립트, 쉐도잉, 영어 교재, AI 영어, 팟캐스트 영어, 유튜브 영어, 영어 학습" />
+        <meta name="keywords" content="영어 공부, 영어 스크립트, 쉐도잉, 영어 교재, AI 영어, 팟캐스트 영어, 유튜브 영어, 영어 학습, 영어회화" />
         <meta name="author" content="kimsogenie" />
         <meta name="robots" content="index, follow" />
+
+        {/* ── Canonical ── */}
+        <link rel="canonical" href="https://no-1-script2study-v-0-0.vercel.app/" />
 
         {/* ── Open Graph ── */}
         <meta property="og:type" content="website" />
         <meta property="og:title" content="Script2Study — AI 영어 교재 자동 생성기" />
-        <meta property="og:description" content="좋아하는 영어 콘텐츠 스크립트로 나만의 학습 교재를 자동으로 만들어드려요. 해석·표현·암기장·쉐도잉·워크북 한 번에!" />
+        <meta property="og:description" content="좋아하는 영어 콘텐츠 스크립트로 나만의 학습 교재를 자동으로 만들어드려요. 해석·표현·암기장·쉐도잉·퀴즈까지 한 번에!" />
         <meta property="og:url" content="https://no-1-script2study-v-0-0.vercel.app" />
         <meta property="og:image" content="https://no-1-script2study-v-0-0.vercel.app/icon-512.png" />
         <meta property="og:locale" content="ko_KR" />
