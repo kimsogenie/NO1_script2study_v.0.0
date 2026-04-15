@@ -445,6 +445,8 @@ const SCRIPT_METHODS = [
 
 const REPEAT_OPTIONS = [1,2,3,5];
 
+const SAMPLE_SCRIPT = `Hey, what's up everyone! Welcome back to the podcast. So today I want to talk about something that's been on my mind a lot lately — the idea of just starting. You know, a lot of us have these big dreams and goals, but we keep waiting for the perfect moment. We say things like, "I'll start when I have more time," or "I'll do it once I feel ready." But here's the thing — that moment never really comes. The best time to start is always right now, even if you're not fully prepared. Even if you make mistakes along the way. Because honestly? The mistakes are part of the process. They teach you things you never could have learned just by planning.`;
+
 const LS_KEY = "s2s_recent";
 const LS_ONBOARD = "s2s_onboarded";
 function loadRecent(){if(typeof window==="undefined")return[];try{return JSON.parse(localStorage.getItem(LS_KEY)||"[]");}catch{return[];}}
@@ -747,7 +749,14 @@ export default function App() {
       <><div className="main-eyebrow">Script2Study</div><div className="main-title">새 교재 만들기</div>
       <div className="tagline-bar"><span style={{fontSize:18}}>📖</span><span className="tagline-text">좋아하는 영어 콘텐츠 스크립트로<br/>나만의 학습 교재를 자동으로 만들어드려요</span></div>
       <div className="field"><label className="lbl">콘텐츠 제목 (선택)</label><input className="inp" type="text" placeholder="예: Hey Tablo EP.1 — MBTI는 옛말?" value={title} onChange={e=>setTitle(e.target.value)}/></div>
-      <div className="field"><label className="lbl">영어 스크립트 * (최대 10,000자)</label><textarea className="inp ta" placeholder={"여기에 영어 원문을 붙여넣으세요\n팟캐스트, 유튜브, 드라마 대본, 인터뷰 등 모두 OK"} value={script} onChange={e=>setScript(e.target.value)} onPaste={()=>window.gtag?.('event','script_paste')}/><div className="cnt">{script.length.toLocaleString()} / 10,000자</div></div>
+      <div className="field">
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+          <label className="lbl" style={{margin:0}}>영어 스크립트 * (최대 10,000자)</label>
+          <button style={{fontSize:12,fontWeight:600,fontFamily:"inherit",background:"var(--pink-light)",border:"1.5px solid var(--pink-mid)",color:"var(--pink-mid)",borderRadius:6,padding:"3px 10px",cursor:"pointer"}} onClick={()=>{setScript(SAMPLE_SCRIPT);window.gtag?.('event','sample_fill');}}>✨ 샘플 스크립트 넣어보기</button>
+        </div>
+        <textarea className="inp ta" placeholder={"여기에 영어 원문을 붙여넣으세요\n팟캐스트, 유튜브, 드라마 대본, 인터뷰 등 모두 OK"} value={script} onChange={e=>setScript(e.target.value)} onPaste={()=>window.gtag?.('event','script_paste')}/>
+        <div className="cnt">{script.length.toLocaleString()} / 10,000자</div>
+      </div>
       <button className="btn-gen" onClick={generate} disabled={!script.trim()}>교재 자동 생성 →</button>
       {error&&<div className="err">{error}</div>}
       <div className="no-script-box">
