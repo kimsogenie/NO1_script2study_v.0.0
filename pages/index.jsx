@@ -30,7 +30,6 @@ const QUOTES = [
   { ko: "세상은 넓고 할 일은 많지 않다. 할 일은 정해져 있다." },
 ];
 
-// 온보딩 단계
 const ONBOARDING_STEPS = [
   { icon: "📝", title: "스크립트 붙여넣기", desc: "좋아하는 영어 유튜브, 팟캐스트, 드라마 대본을 그대로 붙여넣으면 돼요." },
   { icon: "⚡", title: "AI가 교재 자동 생성", desc: "해석, 핵심 표현, 암기장, 쉐도잉, 퀴즈, 워크북까지 한 번에 만들어드려요." },
@@ -122,7 +121,6 @@ const G = `
 html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;
   background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
 
-/* ── 온보딩 모달 ── */
 .ob-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.5);
   display:flex;align-items:center;justify-content:center;
@@ -203,7 +201,6 @@ html,body{min-height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemF
 .mob-view-btn{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;border:1.5px solid var(--sidebar-border);background:var(--win);color:var(--ink2);cursor:pointer;transition:all .15s;}
 .mob-view-btn.active{background:var(--pink-light);border-color:var(--pink-mid);color:var(--pink-mid);}
 
-/* ── 빈 상태 개선 ── */
 .empty-state{text-align:center;padding:40px 20px;}
 .empty-state-icon{font-size:44px;margin-bottom:14px;}
 .empty-state-title{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px;}
@@ -456,6 +453,7 @@ function deleteRecent(id){const u=loadRecent().filter(p=>p.id!==id);try{localSto
 function formatDate(iso){const d=new Date(iso);return`${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}
 
 function downloadHTML(result, withAnswers) {
+  window.gtag?.('event', 'workbook_download', { with_answers: withAnswers }); // GA 이벤트
   const safeTitle = result.title || "Script2Study";
   const badge = withAnswers ? "📋 정답 포함 버전" : "✏️ 문제만 버전";
   const filename = `Script2Study_${safeTitle}_${withAnswers?"정답포함":"문제만"}.html`;
@@ -500,7 +498,6 @@ export default function App() {
     if(typeof window!=="undefined"){
       if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
 
-      // 공유 링크 감지
       const params = new URLSearchParams(window.location.search);
       const shareId = params.get("share");
       if(shareId){
@@ -508,10 +505,9 @@ export default function App() {
         fetch(`/api/share?id=${shareId}`).then(r=>r.json()).then(data=>{
           if(data.result){setResult(data.result);setTitle(data.result.title||"");setIsSharedView(true);setScreen("result");}
         }).catch(()=>{});
-        return; // 공유 링크로 열리면 온보딩 표시 안 함
+        return;
       }
 
-      // 온보딩: 처음 방문자에게만 표시
       const onboarded = localStorage.getItem(LS_ONBOARD);
       if(!onboarded) setShowOnboarding(true);
     }
@@ -574,6 +570,7 @@ export default function App() {
 
   const generate=async()=>{
     if(!script.trim()){setError("영어 스크립트를 먼저 붙여넣어 주세요.");return;}
+    window.gtag?.('event', 'generate_click'); // GA 이벤트
     setScreen("loading");setError("");
     setReveals({});setWbInputs({});setWbChecked({});setShowMatch(false);
     setQuizInputs({});setQuizChecked({});stopRepeat();setIsSharedView(false);
@@ -599,7 +596,6 @@ export default function App() {
   const TTSBtn=({text,id})=>(<button className={`tts-btn ${speaking===id?"playing":""}`} onClick={()=>speak(text,id)} title="듣기">{speaking===id?"⏹":"🔊"}</button>);
   const RepeatBtn=({text,id})=>{const isActive=repeating?.id===id;return(<button className={`repeat-btn ${isActive?"rp-active":""}`} onClick={()=>startRepeat(text,id,repeatCount)} title={`${repeatCount}회 반복`}>🔁{isActive&&<span className="rp-badge">{repeating.current}/{repeating.total}</span>}</button>);};
 
-  // ── 온보딩 모달 ──
   const OnboardingModal = () => (
     <div className="ob-overlay" onClick={closeOnboarding}>
       <div className="ob-modal" onClick={e=>e.stopPropagation()}>
@@ -751,7 +747,7 @@ export default function App() {
       <><div className="main-eyebrow">Script2Study</div><div className="main-title">새 교재 만들기</div>
       <div className="tagline-bar"><span style={{fontSize:18}}>📖</span><span className="tagline-text">좋아하는 영어 콘텐츠 스크립트로<br/>나만의 학습 교재를 자동으로 만들어드려요</span></div>
       <div className="field"><label className="lbl">콘텐츠 제목 (선택)</label><input className="inp" type="text" placeholder="예: Hey Tablo EP.1 — MBTI는 옛말?" value={title} onChange={e=>setTitle(e.target.value)}/></div>
-      <div className="field"><label className="lbl">영어 스크립트 * (최대 10,000자)</label><textarea className="inp ta" placeholder={"여기에 영어 원문을 붙여넣으세요\n팟캐스트, 유튜브, 드라마 대본, 인터뷰 등 모두 OK"} value={script} onChange={e=>setScript(e.target.value)}/><div className="cnt">{script.length.toLocaleString()} / 10,000자</div></div>
+      <div className="field"><label className="lbl">영어 스크립트 * (최대 10,000자)</label><textarea className="inp ta" placeholder={"여기에 영어 원문을 붙여넣으세요\n팟캐스트, 유튜브, 드라마 대본, 인터뷰 등 모두 OK"} value={script} onChange={e=>setScript(e.target.value)} onPaste={()=>window.gtag?.('event','script_paste')}/><div className="cnt">{script.length.toLocaleString()} / 10,000자</div></div>
       <button className="btn-gen" onClick={generate} disabled={!script.trim()}>교재 자동 생성 →</button>
       {error&&<div className="err">{error}</div>}
       <div className="no-script-box">
